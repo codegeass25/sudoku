@@ -1,0 +1,123 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+  <meta name="theme-color" content="#0b1220" />
+  <title>SUDOKU LIVE — Admin Console</title>
+  <link rel="manifest" href="./manifest.json" />
+  <link rel="icon" href="./assets/icon-192.png" />
+  <link rel="apple-touch-icon" href="./assets/icon-192.png" />
+  <link rel="stylesheet" href="./styles.css" />
+</head>
+<body data-page="admin">
+  <div class="ambient ambient-a"></div><div class="ambient ambient-b"></div>
+  <header class="topbar">
+    <a class="brand" href="./index.html"><span class="brand-mark">9×9</span><span><strong>SUDOKU LIVE</strong><small>Admin Console</small></span></a>
+    <div class="topbar-actions"><span id="adminConnectionBadge" class="status-pill status-connecting"><span class="dot"></span><span>Connecting</span></span><a class="ghost-link" href="./index.html">Contestant View</a></div>
+  </header>
+
+  <main class="admin-shell">
+    <section id="adminLoginView" class="admin-login view active">
+      <div class="login-card glass">
+        <span class="eyebrow">SECURE ADMIN ACCESS</span><h1>Competition Control</h1><p class="muted">Manage events, contestants, live activity, results, and rankings.</p>
+        <form id="adminLoginForm" class="form-grid single">
+          <label class="field"><span>Username</span><input id="adminUsername" value="admin" autocomplete="username" required /></label>
+          <label class="field"><span>Password</span><input id="adminPassword" type="password" autocomplete="current-password" required /></label>
+          <button class="btn btn-primary" type="submit">Sign In →</button>
+          <p id="adminLoginMessage" class="form-message"></p>
+        </form>
+      </div>
+    </section>
+
+    <section id="adminAppView" class="view admin-app">
+      <aside class="sidebar glass">
+        <div class="sidebar-title"><small>CONTROL CENTER</small><strong id="adminIdentity">Administrator</strong></div>
+        <nav class="side-nav">
+          <button class="nav-btn active" data-tab="overview"><span>◫</span>Overview</button>
+          <button class="nav-btn" data-tab="setup"><span>＋</span>Competition Setup</button>
+          <button class="nav-btn" data-tab="contestants"><span>♙</span>Contestants</button>
+          <button class="nav-btn" data-tab="monitor"><span>◉</span>Live Monitor</button>
+          <button class="nav-btn" data-tab="ranking"><span>🏆</span>Rankings</button>
+        </nav>
+        <div class="sidebar-bottom"><button id="logoutBtn" class="nav-btn danger-text"><span>↪</span>Sign Out</button></div>
+      </aside>
+
+      <div class="admin-content">
+        <div class="mobile-admin-nav glass">
+          <select id="mobileTabSelect"><option value="overview">Overview</option><option value="setup">Competition Setup</option><option value="contestants">Contestants</option><option value="monitor">Live Monitor</option><option value="ranking">Rankings</option></select>
+        </div>
+
+        <section class="admin-tab active" data-panel="overview">
+          <div class="page-heading"><div><span class="eyebrow">REAL-TIME OPERATIONS</span><h1>Competition Dashboard</h1><p class="muted">Every critical update is pushed live through Socket.IO.</p></div><div class="heading-actions"><select id="competitionSelect" class="select-premium"></select><button id="refreshBtn" class="icon-btn" title="Resync">↻</button></div></div>
+          <div id="noCompetitionNotice" class="empty-state glass hidden"><strong>No competition selected</strong><p>Create a competition from Competition Setup.</p></div>
+          <div id="overviewContent">
+            <div class="event-strip glass"><div><span id="eventStatus" class="status-chip">DRAFT</span><h2 id="eventName">—</h2><p id="eventMeta">—</p></div><div class="event-actions"><button id="toggleEventBtn" class="btn btn-success">Open Competition</button><button id="leaderboardVisibilityBtn" class="btn btn-secondary">Leaderboard: Hidden</button><button id="copyCodeBtn" class="btn btn-secondary">Copy Code</button></div></div>
+            <div class="stat-grid">
+              <article class="stat-card glass"><small>REGISTERED</small><strong id="statRegistered">0</strong><span>Total contestants</span></article>
+              <article class="stat-card glass"><small>PLAYING</small><strong id="statPlaying">0</strong><span>Live attempts</span></article>
+              <article class="stat-card glass"><small>SUBMITTED</small><strong id="statSubmitted">0</strong><span>Final answers</span></article>
+              <article class="stat-card glass"><small>PERFECT</small><strong id="statPerfect">0</strong><span>81 / 81 correct</span></article>
+              <article class="stat-card glass"><small>NOT STARTED</small><strong id="statNotStarted">0</strong><span>Waiting</span></article>
+            </div>
+            <div class="dashboard-grid">
+              <div class="dashboard-card glass"><div class="section-heading"><div><span class="eyebrow">LIVE ACTIVITY</span><h2>Contestant Monitor</h2></div><span class="live-indicator"><i></i>LIVE</span></div><div id="overviewMonitor" class="table-wrap"></div></div>
+              <div class="dashboard-card glass"><div class="section-heading"><div><span class="eyebrow">TOP RESULTS</span><h2>Leaderboard</h2></div></div><div id="overviewLeaderboard" class="leaderboard-list"></div></div>
+            </div>
+          </div>
+        </section>
+
+        <section class="admin-tab" data-panel="setup">
+          <div class="page-heading"><div><span class="eyebrow">EVENT BUILDER</span><h1>Competition Setup</h1><p class="muted">Create a validated 9×9 puzzle and its official master key.</p></div></div>
+          <div class="setup-grid">
+            <form id="createCompetitionForm" class="dashboard-card glass form-grid">
+              <div class="section-heading full"><div><span class="eyebrow">NEW COMPETITION</span><h2>Event details</h2></div></div>
+              <label class="field"><span>Competition Name</span><input id="newName" placeholder="Division Sudoku Challenge 2026" required /></label>
+              <label class="field"><span>Competition Code</span><input id="newCode" placeholder="DSC-2026" required /></label>
+              <label class="field full"><span>Organizer / School</span><input id="newOrg" placeholder="Organization or school name" /></label>
+              <label class="field full"><span>Description / Instructions</span><textarea id="newDescription" rows="3" placeholder="Competition instructions shown before contestants start."></textarea></label>
+              <label class="switch-row full"><span><strong>Allow self-registration</strong><small>Contestants may join even if not preloaded.</small></span><input id="newSelfReg" type="checkbox" checked /><i></i></label>
+              <label class="switch-row full"><span><strong>Show live leaderboard</strong><small>Normally keep this off until results are ready.</small></span><input id="newShowLeaderboard" type="checkbox" /><i></i></label>
+
+              <div class="grid-input-card full">
+                <div class="grid-input-heading"><div><small>PUZZLE</small><strong>Starting grid</strong></div><label class="file-chip">Import TXT/CSV<input id="puzzleFile" type="file" accept=".txt,.csv,text/plain,text/csv" /></label></div>
+                <textarea id="puzzleText" rows="5" placeholder="Paste 81 digits. Use 0 for blank cells. Spaces/newlines are allowed." required></textarea>
+                <div id="puzzlePreview" class="mini-sudoku"></div>
+              </div>
+              <div class="grid-input-card full master-card">
+                <div class="grid-input-heading"><div><small>MASTER KEY</small><strong>Official solved grid</strong></div><label class="file-chip">Import TXT/CSV<input id="masterFile" type="file" accept=".txt,.csv,text/plain,text/csv" /></label></div>
+                <textarea id="masterText" rows="5" placeholder="Paste the completed 81-digit Sudoku solution (1–9 only)." required></textarea>
+                <div id="masterPreview" class="mini-sudoku"></div>
+              </div>
+              <button class="btn btn-primary full" type="submit">Create Competition →</button><p id="createMessage" class="form-message full"></p>
+            </form>
+            <div class="dashboard-card glass guide-card"><span class="eyebrow">MASTER KEY RULES</span><h2>Validated before publishing</h2><div class="check-list"><p>✓ Exactly 81 solved cells</p><p>✓ Every row contains 1–9</p><p>✓ Every column contains 1–9</p><p>✓ Every 3×3 box contains 1–9</p><p>✓ Every puzzle clue matches the master key</p></div><div class="info-box"><strong>Security</strong><p>The master key is never sent to the contestant frontend. Final checking happens only on the backend.</p></div></div>
+          </div>
+        </section>
+
+        <section class="admin-tab" data-panel="contestants">
+          <div class="page-heading"><div><span class="eyebrow">PARTICIPANT REGISTRY</span><h1>Contestants</h1><p class="muted">Pre-register contestants or allow self-registration in event settings.</p></div></div>
+          <div class="dashboard-grid contestants-grid">
+            <form id="addContestantForm" class="dashboard-card glass form-grid single"><div class="section-heading"><div><span class="eyebrow">ADD CONTESTANT</span><h2>Individual entry</h2></div></div><label class="field"><span>Contestant No.</span><input id="addNo" required /></label><label class="field"><span>Full Name</span><input id="addName" required /></label><label class="field"><span>School / Team</span><input id="addSchool" /></label><button class="btn btn-primary" type="submit">Add Contestant</button><p id="contestantMessage" class="form-message"></p></form>
+            <div class="dashboard-card glass"><div class="section-heading"><div><span class="eyebrow">BULK IMPORT</span><h2>Paste CSV rows</h2></div></div><p class="muted small">Format: <strong>Contestant No, Full Name, School/Team</strong> — one contestant per line.</p><textarea id="bulkContestants" rows="7" placeholder="C-001, Juan Dela Cruz, Team A\nC-002, Maria Santos, Team B"></textarea><button id="bulkImportBtn" class="btn btn-secondary full">Import Contestants</button><p id="bulkMessage" class="form-message"></p></div>
+          </div>
+          <div class="dashboard-card glass"><div class="section-heading"><div><span class="eyebrow">REGISTRY</span><h2>Competition contestants</h2></div></div><div id="contestantTable" class="table-wrap"></div></div>
+        </section>
+
+        <section class="admin-tab" data-panel="monitor">
+          <div class="page-heading"><div><span class="eyebrow">SOCKET.IO LIVE FEED</span><h1>Live Monitor</h1><p class="muted">Starts, saves, submissions, reconnects, and status changes appear without manual refreshing.</p></div></div>
+          <div class="dashboard-card glass"><div class="section-heading"><div><span class="eyebrow">ACTIVE EVENT</span><h2 id="monitorTitle">Contestant Status</h2></div><span class="live-indicator"><i></i>LIVE</span></div><div id="fullMonitor" class="table-wrap"></div></div>
+        </section>
+
+        <section class="admin-tab" data-panel="ranking">
+          <div class="page-heading"><div><span class="eyebrow">OFFICIAL RESULTS</span><h1>Rankings</h1><p class="muted">Correctness first, then shortest server-measured elapsed time.</p></div><div class="heading-actions"><button id="exportCsvBtn" class="btn btn-secondary">Export CSV</button></div></div>
+          <div class="dashboard-card glass"><div class="ranking-note"><strong>Ranking logic</strong><span>Perfect (81/81) → Correct answers ↓ → Time ↑</span></div><div id="fullLeaderboard" class="ranking-table"></div></div>
+        </section>
+      </div>
+    </section>
+  </main>
+
+  <div id="adminToastStack" class="toast-stack"></div>
+  <script src="./admin.js" defer></script>
+</body>
+</html>

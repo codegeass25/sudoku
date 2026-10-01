@@ -1,0 +1,152 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+  <meta name="theme-color" content="#0b1220" />
+  <meta name="description" content="Premium live Sudoku competition platform" />
+  <title>SUDOKU LIVE — Competition Arena</title>
+  <link rel="manifest" href="./manifest.json" />
+  <link rel="icon" href="./assets/icon-192.png" />
+  <link rel="apple-touch-icon" href="./assets/icon-192.png" />
+  <link rel="stylesheet" href="./styles.css" />
+</head>
+<body data-page="contestant">
+  <div class="ambient ambient-a"></div><div class="ambient ambient-b"></div>
+  <header class="topbar">
+    <a class="brand" href="./index.html" aria-label="Sudoku Live home">
+      <span class="brand-mark" aria-hidden="true">9×9</span>
+      <span><strong>SUDOKU LIVE</strong><small>Competition Arena</small></span>
+    </a>
+    <div class="topbar-actions">
+      <span id="connectionBadge" class="status-pill status-connecting"><span class="dot"></span><span>Connecting</span></span>
+      <a class="ghost-link" href="./admin.html">Admin</a>
+    </div>
+  </header>
+
+  <main class="shell contestant-shell">
+    <section id="lobbyView" class="view active">
+      <div class="hero-card glass">
+        <div class="hero-copy">
+          <span class="eyebrow">OFFICIAL DIGITAL SUDOKU</span>
+          <h1>Precision wins.<br><span>Every millisecond counts.</span></h1>
+          <p>Enter your competition details. Your official time starts only after you press <strong>Start Sudoku</strong>.</p>
+          <div class="trust-row">
+            <span>✓ Server-timed</span><span>✓ Auto-saved</span><span>✓ Live ranking</span>
+          </div>
+        </div>
+        <div class="join-panel">
+          <div class="panel-heading"><div><span class="eyebrow">CONTESTANT ACCESS</span><h2>Enter the arena</h2></div><span class="secure-chip">LIVE</span></div>
+          <form id="joinForm" class="form-grid">
+            <label class="field full"><span>Competition Code</span><input id="competitionCode" autocomplete="off" placeholder="e.g. SUDOKU-2026" maxlength="40" required /></label>
+            <label class="field"><span>Contestant No.</span><input id="contestantNo" autocomplete="off" placeholder="e.g. C-018" maxlength="50" required /></label>
+            <label class="field"><span>Full Name</span><input id="fullName" autocomplete="name" placeholder="Juan Dela Cruz" maxlength="160" required /></label>
+            <label class="field full"><span>School / Team <em>optional</em></span><input id="schoolTeam" autocomplete="organization" placeholder="School, team, or delegation" maxlength="160" /></label>
+            <button id="checkInBtn" class="btn btn-primary full" type="submit"><span>Check In</span><span aria-hidden="true">→</span></button>
+          </form>
+          <p id="joinMessage" class="form-message" role="status"></p>
+        </div>
+      </div>
+    </section>
+
+    <section id="readyView" class="view">
+      <div class="ready-card glass">
+        <div class="ready-badge">READY</div>
+        <span class="eyebrow">COMPETITION VERIFIED</span>
+        <h1 id="readyTitle">Sudoku Competition</h1>
+        <p id="readyDescription" class="muted"></p>
+        <div class="identity-strip">
+          <div><small>CONTESTANT</small><strong id="readyName">—</strong></div>
+          <div><small>NUMBER</small><strong id="readyNo">—</strong></div>
+          <div><small>ORGANIZER</small><strong id="readyOrg">—</strong></div>
+        </div>
+        <div class="rules-box">
+          <strong>Before you start</strong>
+          <p>The timer is controlled by the server. Refreshing, closing the app, or changing the device clock will not reset your official time. You have one final submission.</p>
+        </div>
+        <button id="startBtn" class="btn btn-primary btn-large">START SUDOKU <span>→</span></button>
+        <p id="readyMessage" class="form-message" role="status"></p>
+      </div>
+    </section>
+
+    <section id="gameView" class="view game-view">
+      <div class="game-layout">
+        <div class="game-main">
+          <div class="game-header glass">
+            <div class="game-event"><span class="eyebrow">LIVE ATTEMPT</span><h2 id="gameTitle">Sudoku Competition</h2><p id="gamePlayer">—</p></div>
+            <div class="timer-card"><small>OFFICIAL TIME</small><strong id="timer">00:00.000</strong><span id="saveStatus">All changes saved</span></div>
+          </div>
+
+          <div class="board-wrap glass">
+            <div id="sudokuBoard" class="sudoku-board" role="grid" aria-label="Sudoku board"></div>
+          </div>
+
+          <div class="mobile-controls glass">
+            <div class="number-pad" id="numberPad"></div>
+            <div class="tool-row">
+              <button class="tool-btn" id="eraseBtn"><span>⌫</span><small>Erase</small></button>
+              <button class="tool-btn" id="undoBtn"><span>↶</span><small>Undo</small></button>
+              <button class="tool-btn" id="clearSelectionBtn"><span>◇</span><small>Unselect</small></button>
+            </div>
+          </div>
+        </div>
+
+        <aside class="game-sidebar">
+          <div class="side-card glass">
+            <span class="eyebrow">PROGRESS</span>
+            <div class="progress-ring"><strong id="filledCount">0</strong><span>/ 81 filled</span></div>
+            <div class="progress-track"><i id="progressBar"></i></div>
+            <p class="muted small">Original clue cells are locked. Your entries are automatically saved to the competition server.</p>
+          </div>
+          <div class="side-card glass">
+            <span class="eyebrow">NUMBER PAD</span>
+            <div class="number-pad desktop-pad" id="desktopNumberPad"></div>
+            <div class="tool-row vertical-tools">
+              <button class="tool-btn" id="desktopEraseBtn"><span>⌫</span><small>Erase</small></button>
+              <button class="tool-btn" id="desktopUndoBtn"><span>↶</span><small>Undo</small></button>
+            </div>
+          </div>
+          <div class="side-card danger-card glass">
+            <strong>Final submission</strong>
+            <p class="muted small">Your board will be locked permanently after submission.</p>
+            <button id="submitBtn" class="btn btn-success full">SUBMIT FINAL ANSWER</button>
+          </div>
+        </aside>
+      </div>
+    </section>
+
+    <section id="resultView" class="view">
+      <div class="result-card glass">
+        <div id="resultIcon" class="result-icon">✓</div>
+        <span class="eyebrow">FINAL SUBMISSION RECORDED</span>
+        <h1 id="resultHeadline">Submission complete</h1>
+        <p id="resultSubline" class="muted">Your result has been secured by the competition server.</p>
+        <div class="result-grid">
+          <div><small>CORRECT</small><strong id="resultCorrect">—</strong></div>
+          <div><small>ACCURACY</small><strong id="resultAccuracy">—</strong></div>
+          <div><small>OFFICIAL TIME</small><strong id="resultTime">—</strong></div>
+          <div><small>RANK</small><strong id="resultRank">Pending</strong></div>
+        </div>
+        <div id="leaderboardPanel" class="leaderboard-panel hidden">
+          <div class="section-heading"><div><span class="eyebrow">LIVE RESULTS</span><h2>Leaderboard</h2></div></div>
+          <div id="publicLeaderboard" class="leaderboard-list"></div>
+        </div>
+        <button id="returnHomeBtn" class="btn btn-secondary">Return to Home</button>
+      </div>
+    </section>
+  </main>
+
+  <div id="confirmModal" class="modal" aria-hidden="true">
+    <div class="modal-backdrop"></div>
+    <div class="modal-card glass">
+      <div class="modal-icon">!</div><h2>Submit final answer?</h2>
+      <p>Once submitted, your answers and official time can no longer be changed.</p>
+      <div class="modal-actions"><button id="cancelSubmitBtn" class="btn btn-secondary">Cancel</button><button id="confirmSubmitBtn" class="btn btn-success">Submit Final Answer</button></div>
+    </div>
+  </div>
+
+  <div id="toastStack" class="toast-stack" aria-live="polite"></div>
+  <footer class="footer">SUDOKU LIVE · Server-timed competition platform</footer>
+  <script src="./app.js" defer></script>
+</body>
+</html>

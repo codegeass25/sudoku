@@ -1,0 +1,14 @@
+{
+  "name": "SUDOKU LIVE Competition Arena",
+  "short_name": "Sudoku Live",
+  "description": "Server-timed live Sudoku competition and ranking system",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#07101f",
+  "theme_color": "#0b1220",
+  "icons": [
+    {"src":"./assets/icon-192.png","sizes":"192x192","type":"image/png","purpose":"any maskable"},
+    {"src":"./assets/icon-512.png","sizes":"512x512","type":"image/png","purpose":"any maskable"}
+  ]
+}
