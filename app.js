@@ -53,6 +53,7 @@ async function connectAttemptSocket(){
   state.socket.on('server:hello',p=>{ if(p?.server_now)state.serverOffset=p.server_now-Date.now(); });
   state.socket.on('competition:status',p=>{ if(!p)return; if(state.competition)state.competition.status=p.status; if(state.attempt?.competition)state.attempt.competition.status=p.status; updateProgress(); if(p.status==='closed'&&state.attempt?.state==='playing')toast('Competition has been closed by the administrator. Final submission is currently locked.','error'); });
   state.socket.on('leaderboard:updated',p=>{ if(p?.leaderboard){ els.leaderboardPanel.classList.remove('hidden'); renderLeaderboard(p.leaderboard); const mine=p.leaderboard.find(r=>r.attempt_id===state.attempt?.id); if(mine)els.resultRank.textContent=`#${mine.rank}`; } });
+  state.socket.on('competition:reset',p=>{ clearActive(); state.token=null; state.attempt=null; state.selected=null; toast(p?.message||'This competition was reset by the administrator.','error'); if(state.socket)state.socket.disconnect(); setTimeout(()=>{state.competition=null;state.contestant=null;showView(els.lobby);healthCheck();},900); });
 }
 
 els.joinForm.addEventListener('submit',async e=>{

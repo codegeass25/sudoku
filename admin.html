@@ -39,13 +39,14 @@
           <button class="nav-btn" data-tab="contestants"><span>♙</span>Contestants</button>
           <button class="nav-btn" data-tab="monitor"><span>◉</span>Live Monitor</button>
           <button class="nav-btn" data-tab="ranking"><span>🏆</span>Rankings</button>
+          <button class="nav-btn" data-tab="data"><span>⌁</span>Data & Backup</button>
         </nav>
         <div class="sidebar-bottom"><button id="logoutBtn" class="nav-btn danger-text"><span>↪</span>Sign Out</button></div>
       </aside>
 
       <div class="admin-content">
         <div class="mobile-admin-nav glass">
-          <select id="mobileTabSelect"><option value="overview">Overview</option><option value="setup">Competition Setup</option><option value="contestants">Contestants</option><option value="monitor">Live Monitor</option><option value="ranking">Rankings</option></select>
+          <select id="mobileTabSelect"><option value="overview">Overview</option><option value="setup">Competition Setup</option><option value="contestants">Contestants</option><option value="monitor">Live Monitor</option><option value="ranking">Rankings</option><option value="data">Data & Backup</option></select>
         </div>
 
         <section class="admin-tab active" data-panel="overview">
@@ -110,12 +111,62 @@
         </section>
 
         <section class="admin-tab" data-panel="ranking">
-          <div class="page-heading"><div><span class="eyebrow">OFFICIAL RESULTS</span><h1>Rankings</h1><p class="muted">Correctness first, then shortest server-measured elapsed time.</p></div><div class="heading-actions"><button id="exportCsvBtn" class="btn btn-secondary">Export CSV</button></div></div>
+          <div class="page-heading"><div><span class="eyebrow">OFFICIAL RESULTS</span><h1>Rankings</h1><p class="muted">Correctness first, then shortest server-measured elapsed time.</p></div><div class="heading-actions result-tools"><button id="printResultsBtn" class="icon-action-btn" title="Print official results" aria-label="Print official results"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 8V4h10v4M7 17H5a2 2 0 0 1-2-2v-4a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v4a2 2 0 0 1-2 2h-2M7 14h10v6H7z"/></svg></button><button id="exportXlsxBtn" class="icon-action-btn" title="Download Excel (.xlsx)" aria-label="Download Excel results"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v12m0 0 4-4m-4 4-4-4M5 19h14"/></svg><span class="file-badge">XLSX</span></button></div></div>
           <div class="dashboard-card glass"><div class="ranking-note"><strong>Ranking logic</strong><span>Perfect (81/81) → Correct answers ↓ → Time ↑</span></div><div id="fullLeaderboard" class="ranking-table"></div></div>
+        </section>
+
+        <section class="admin-tab" data-panel="data">
+          <div class="page-heading"><div><span class="eyebrow">DATA PROTECTION</span><h1>Backup, Restore & Reset</h1><p class="muted">Protect official records and safely clear practice data without touching your puzzle or master key.</p></div></div>
+          <div class="data-tools-grid">
+            <article class="data-tool-card dashboard-card glass">
+              <div class="tool-icon backup-icon">⇩</div>
+              <span class="eyebrow">FULL DATA BACKUP</span><h2>Download Backup</h2>
+              <p>Downloads competitions, contestants, attempts, rankings, and audit records. Admin credentials are intentionally excluded.</p>
+              <button id="backupDataBtn" class="btn btn-primary full">Download Backup</button>
+            </article>
+            <article class="data-tool-card dashboard-card glass">
+              <div class="tool-icon restore-icon">↺</div>
+              <span class="eyebrow">SAFE RESTORE</span><h2>Restore Backup</h2>
+              <p>Restore a SUDOKU LIVE backup file. All competitions must be closed and no contestant may be actively playing.</p>
+              <label class="file-chip restore-picker">Choose Backup File<input id="restoreBackupFile" type="file" accept=".json,application/json" /></label>
+              <div id="restoreFileName" class="selected-file">No file selected</div>
+              <button id="restoreDataBtn" class="btn btn-secondary full" disabled>Review & Restore</button>
+            </article>
+            <article class="data-tool-card dashboard-card glass danger-tool">
+              <div class="tool-icon reset-icon">⌫</div>
+              <span class="eyebrow">PRACTICE CLEANUP</span><h2>Reset Operational Data</h2>
+              <p>Clears the <strong>selected competition's contestants, attempts, results, rankings, and live practice records</strong>, then returns it to Draft.</p>
+              <div class="preserve-note"><strong>Preserved:</strong> competition name/code, instructions, organizer, puzzle, MASTER KEY, settings, and admin account.</div>
+              <button id="resetOperationalBtn" class="btn btn-danger full">Reset Selected Competition</button>
+            </article>
+          </div>
+          <div class="dashboard-card glass safety-banner"><strong>Recommended workflow</strong><span>Download a backup first → reset practice data → register official contestants → open the elimination round.</span></div>
         </section>
       </div>
     </section>
   </main>
+
+
+  <div id="resetOperationalModal" class="modal" aria-hidden="true">
+    <div class="modal-backdrop" data-close-reset></div>
+    <div class="modal-card glass confirm-data-card">
+      <div class="modal-icon danger-modal-icon">!</div>
+      <span class="eyebrow">DESTRUCTIVE ACTION</span><h2>Reset practice data?</h2>
+      <p id="resetOperationalSummary">This will permanently clear operational records for the selected competition.</p>
+      <label class="field confirm-field"><span>Type the competition code to confirm</span><input id="resetConfirmCode" autocomplete="off" /></label>
+      <div class="modal-actions"><button id="cancelResetBtn" class="btn btn-secondary">Cancel</button><button id="confirmResetBtn" class="btn btn-danger" disabled>Reset Operational Data</button></div>
+    </div>
+  </div>
+
+  <div id="restoreBackupModal" class="modal" aria-hidden="true">
+    <div class="modal-backdrop" data-close-restore></div>
+    <div class="modal-card glass confirm-data-card">
+      <div class="modal-icon">↺</div>
+      <span class="eyebrow">RESTORE BACKUP</span><h2>Replace competition data?</h2>
+      <p id="restoreBackupSummary">The selected backup will replace current competition data. Your admin account remains unchanged.</p>
+      <div class="modal-actions"><button id="cancelRestoreBtn" class="btn btn-secondary">Cancel</button><button id="confirmRestoreBtn" class="btn btn-primary">Restore Backup</button></div>
+    </div>
+  </div>
 
   <div id="adminToastStack" class="toast-stack"></div>
   <script src="./admin.js" defer></script>
