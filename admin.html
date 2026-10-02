@@ -69,7 +69,7 @@
         </section>
 
         <section class="admin-tab" data-panel="setup">
-          <div class="page-heading"><div><span class="eyebrow">EVENT BUILDER</span><h1>Competition Setup</h1><p class="muted">Create a validated 9×9 puzzle and its official master key.</p></div></div>
+          <div class="page-heading"><div><span class="eyebrow">EVENT BUILDER</span><h1>Competition Setup</h1><p class="muted">Create one contest code, then import multiple matched HARD Sudoku materials and master keys in bulk.</p></div></div>
           <div class="setup-grid">
             <form id="createCompetitionForm" class="dashboard-card glass form-grid">
               <div class="section-heading full"><div><span class="eyebrow">NEW COMPETITION</span><h2>Event details</h2></div></div>
@@ -79,20 +79,24 @@
               <label class="field full"><span>Description / Instructions</span><textarea id="newDescription" rows="3" placeholder="Competition instructions shown before contestants start."></textarea></label>
               <label class="switch-row full"><span><strong>Allow self-registration</strong><small>Contestants may join even if not preloaded.</small></span><input id="newSelfReg" type="checkbox" checked /><i></i></label>
               <label class="switch-row full"><span><strong>Show live leaderboard</strong><small>Normally keep this off until results are ready.</small></span><input id="newShowLeaderboard" type="checkbox" /><i></i></label>
-
-              <div class="grid-input-card full">
-                <div class="grid-input-heading"><div><small>PUZZLE</small><strong>Starting grid</strong></div><label class="file-chip">Import TXT/CSV<input id="puzzleFile" type="file" accept=".txt,.csv,text/plain,text/csv" /></label></div>
-                <textarea id="puzzleText" rows="5" placeholder="Paste 81 digits. Use 0 for blank cells. Spaces/newlines are allowed." required></textarea>
-                <div id="puzzlePreview" class="mini-sudoku"></div>
-              </div>
-              <div class="grid-input-card full master-card">
-                <div class="grid-input-heading"><div><small>MASTER KEY</small><strong>Official solved grid</strong></div><label class="file-chip">Import TXT/CSV<input id="masterFile" type="file" accept=".txt,.csv,text/plain,text/csv" /></label></div>
-                <textarea id="masterText" rows="5" placeholder="Paste the completed 81-digit Sudoku solution (1–9 only)." required></textarea>
-                <div id="masterPreview" class="mini-sudoku"></div>
+              <div class="material-policy-card full">
+                <span class="difficulty-badge">HARD</span>
+                <div><strong>Material difficulty is locked to HARD</strong><p>Create the contest first. Then import the Test Materials ZIP and matching Master Keys ZIP once for this contest.</p></div>
               </div>
               <button class="btn btn-primary full" type="submit">Create Competition →</button><p id="createMessage" class="form-message full"></p>
             </form>
-            <div class="dashboard-card glass guide-card"><span class="eyebrow">MASTER KEY RULES</span><h2>Validated before publishing</h2><div class="check-list"><p>✓ Exactly 81 solved cells</p><p>✓ Every row contains 1–9</p><p>✓ Every column contains 1–9</p><p>✓ Every 3×3 box contains 1–9</p><p>✓ Every puzzle clue matches the master key</p></div><div class="info-box"><strong>Security</strong><p>The master key is never sent to the contestant frontend. Final checking happens only on the backend.</p></div></div>
+            <div class="dashboard-card glass material-import-card">
+              <span class="eyebrow">BULK MATERIAL SET</span><h2>Import HARD Test Materials</h2>
+              <p class="muted small">Select the competition above, then upload the two ZIP files. Files are paired automatically by number/name, e.g. <strong>TEST_01.txt ↔ MASTER_01.txt</strong>.</p>
+              <div class="zip-pair-grid">
+                <label class="zip-drop"><span>① TEST MATERIALS ZIP</span><strong id="testZipName">Choose ZIP</strong><input id="testMaterialsZip" type="file" accept=".zip,application/zip" /></label>
+                <label class="zip-drop"><span>② MASTER KEYS ZIP</span><strong id="masterZipName">Choose ZIP</strong><input id="masterKeysZip" type="file" accept=".zip,application/zip" /></label>
+              </div>
+              <button id="importMaterialSetBtn" class="btn btn-secondary full" type="button">Validate & Import Material Set</button>
+              <p id="materialImportMessage" class="form-message"></p>
+              <div id="materialDistribution" class="material-distribution"></div>
+            </div>
+            <div class="dashboard-card glass guide-card"><span class="eyebrow">FAIR RANDOMIZATION</span><h2>One code. Different HARD tests.</h2><div class="check-list"><p>✓ Every test is paired with exactly one master key</p><p>✓ Assignment happens only when START is pressed</p><p>✓ Server randomly chooses among the least-assigned tests</p><p>✓ Refresh/reconnect keeps the same assigned test</p><p>✓ Contestants never see the internal Test ID</p></div><div class="info-box"><strong>Fairness</strong><p>Use equivalent HARD materials. The supplied sample ZIPs contain six isomorphic hard puzzles with the same structure/difficulty.</p></div></div>
           </div>
         </section>
 
@@ -116,7 +120,7 @@
         </section>
 
         <section class="admin-tab" data-panel="data">
-          <div class="page-heading"><div><span class="eyebrow">DATA PROTECTION</span><h1>Backup, Restore & Reset</h1><p class="muted">Protect official records and safely clear practice data without touching your puzzle or master key.</p></div></div>
+          <div class="page-heading"><div><span class="eyebrow">DATA PROTECTION</span><h1>Backup, Restore & Reset</h1><p class="muted">Protect official records and safely clear practice data without touching your imported test materials or master keys.</p></div></div>
           <div class="data-tools-grid">
             <article class="data-tool-card dashboard-card glass">
               <div class="tool-icon backup-icon">⇩</div>
@@ -136,7 +140,7 @@
               <div class="tool-icon reset-icon">⌫</div>
               <span class="eyebrow">PRACTICE CLEANUP</span><h2>Reset Operational Data</h2>
               <p>Clears the <strong>selected competition's contestants, attempts, results, rankings, and live practice records</strong>, then returns it to Draft.</p>
-              <div class="preserve-note"><strong>Preserved:</strong> competition name/code, instructions, organizer, puzzle, MASTER KEY, settings, and admin account.</div>
+              <div class="preserve-note"><strong>Preserved:</strong> competition name/code, instructions, organizer, all HARD test materials, all MASTER KEYS, settings, and admin account.</div>
               <button id="resetOperationalBtn" class="btn btn-danger full">Reset Selected Competition</button>
             </article>
           </div>
