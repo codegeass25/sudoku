@@ -1,153 +1,54 @@
 'use strict';
 
-const API_BASE = 'https://suduko.mdmsportal.uk';
+const API_BASE='https://suduko.mdmsportal.uk';
+const $=s=>document.querySelector(s);
+const E={badge:$('#connectionBadge'),lobby:$('#lobbyView'),ready:$('#readyView'),game:$('#gameView'),result:$('#resultView'),joinForm:$('#joinForm'),code:$('#competitionCode'),no:$('#contestantNo'),name:$('#fullName'),school:$('#schoolTeam'),joinMessage:$('#joinMessage'),readyTitle:$('#readyTitle'),readyDescription:$('#readyDescription'),readyName:$('#readyName'),readyNo:$('#readyNo'),readyOrg:$('#readyOrg'),readyDifficulty:$('#readyDifficulty'),readyLimit:$('#readyLimit'),readyParticipation:$('#readyParticipation'),readyMessage:$('#readyMessage'),startBtn:$('#startBtn'),gameTitle:$('#gameTitle'),gamePlayer:$('#gamePlayer'),elapsed:$('#timer'),remaining:$('#remainingTimer'),saveStatus:$('#saveStatus'),board:$('#sudokuBoard'),numberPad:$('#numberPad'),desktopPad:$('#desktopNumberPad'),erase:$('#eraseBtn'),dErase:$('#desktopEraseBtn'),filled:$('#filledCount'),progress:$('#progressBar'),submit:$('#submitBtn'),modal:$('#confirmModal'),cancelSubmit:$('#cancelSubmitBtn'),confirmSubmit:$('#confirmSubmitBtn'),resultIcon:$('#resultIcon'),resultHeadline:$('#resultHeadline'),resultSubline:$('#resultSubline'),resultCorrect:$('#resultCorrect'),resultAccuracy:$('#resultAccuracy'),resultTime:$('#resultTime'),resultRank:$('#resultRank'),leaderboardPanel:$('#leaderboardPanel'),publicLeaderboard:$('#publicLeaderboard'),returnHome:$('#returnHomeBtn'),toasts:$('#toastStack')};
+const S={competition:null,contestant:null,attempt:null,token:null,puzzle:'',board:Array(81).fill('0'),selected:null,saveTimer:null,saving:false,pendingSave:false,socket:null,serverOffset:0,timerRAF:null,timeUpHandled:false};
 
-const $ = s => document.querySelector(s);
-const els = {
-  badge: $('#connectionBadge'), lobby: $('#lobbyView'), ready: $('#readyView'), game: $('#gameView'), result: $('#resultView'),
-  joinForm: $('#joinForm'), code: $('#competitionCode'), no: $('#contestantNo'), name: $('#fullName'), school: $('#schoolTeam'), joinMessage: $('#joinMessage'),
-  readyTitle: $('#readyTitle'), readyDescription: $('#readyDescription'), readyName: $('#readyName'), readyNo: $('#readyNo'), readyOrg: $('#readyOrg'), readyMessage: $('#readyMessage'), startBtn: $('#startBtn'),
-  gameTitle: $('#gameTitle'), gamePlayer: $('#gamePlayer'), timer: $('#timer'), saveStatus: $('#saveStatus'), board: $('#sudokuBoard'), numberPad: $('#numberPad'), desktopPad: $('#desktopNumberPad'),
-  erase: $('#eraseBtn'), dErase: $('#desktopEraseBtn'), undo: $('#undoBtn'), dUndo: $('#desktopUndoBtn'), unselect: $('#clearSelectionBtn'), filled: $('#filledCount'), progress: $('#progressBar'), submit: $('#submitBtn'),
-  modal: $('#confirmModal'), cancelSubmit: $('#cancelSubmitBtn'), confirmSubmit: $('#confirmSubmitBtn'),
-  resultIcon: $('#resultIcon'), resultHeadline: $('#resultHeadline'), resultSubline: $('#resultSubline'), resultCorrect: $('#resultCorrect'), resultAccuracy: $('#resultAccuracy'), resultTime: $('#resultTime'), resultRank: $('#resultRank'),
-  leaderboardPanel: $('#leaderboardPanel'), publicLeaderboard: $('#publicLeaderboard'), returnHome: $('#returnHomeBtn'), toasts: $('#toastStack')
-};
+function showView(el){[E.lobby,E.ready,E.game,E.result].forEach(v=>v.classList.remove('active'));el.classList.add('active');window.scrollTo({top:0,behavior:'smooth'})}
+function msg(el,text,type=''){el.textContent=text||'';el.className='form-message'+(type?` ${type}`:'')}
+function toast(text,type=''){const d=document.createElement('div');d.className='toast '+type;d.textContent=text;E.toasts.appendChild(d);setTimeout(()=>d.remove(),3500)}
+function setConn(mode,text){E.badge.className=`status-pill status-${mode}`;E.badge.querySelector('span:last-child').textContent=text}
+function fmt(ms){ms=Math.max(0,Number(ms)||0);const m=Math.floor(ms/60000),s=Math.floor((ms%60000)/1000),x=Math.floor(ms%1000);return `${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}.${String(x).padStart(3,'0')}`}
+function fmtLimit(min){return `${Number(min)||0} minute${Number(min)===1?'':'s'}`}
+function norm(v){return String(v??'').replace(/[^0-9]/g,'').slice(0,81)}
+async function api(path,opts={}){const h={...(opts.headers||{})};if(opts.body&&!(opts.body instanceof FormData)){h['Content-Type']='application/json';if(typeof opts.body!=='string')opts.body=JSON.stringify(opts.body)}const r=await fetch(API_BASE+path,{...opts,headers:h});let d={};try{d=await r.json()}catch{}if(!r.ok){const e=new Error(d.error||`Request failed (${r.status})`);e.data=d;e.status=r.status;throw e}return d}
+function mergeClues(answers,puzzle){const a=(norm(answers)+'0'.repeat(81)).slice(0,81).split('');for(let i=0;i<81;i++)if(puzzle[i]&&puzzle[i]!=='0')a[i]=puzzle[i];return a}
+function storeActive(){if(S.token)localStorage.setItem('sudoku_live_active_token',S.token);if(S.attempt)localStorage.setItem('sudoku_live_cached_attempt',JSON.stringify({attempt:S.attempt,board:S.board,competition:S.competition,contestant:S.contestant,token:S.token,serverOffset:S.serverOffset}))}
+function clearActive(){localStorage.removeItem('sudoku_live_active_token');localStorage.removeItem('sudoku_live_cached_attempt')}
+async function health(){try{const r=await fetch(API_BASE+'/health',{cache:'no-store'});if(!r.ok)throw 0;setConn('online','Server Online')}catch{setConn('offline','Server Offline')}}
+async function loadSocket(){if(window.io)return true;return new Promise(resolve=>{const s=document.createElement('script');s.src=API_BASE+'/socket.io/socket.io.js';s.async=true;s.onload=()=>resolve(true);s.onerror=()=>resolve(false);document.head.appendChild(s)})}
+async function connectSocket(){if(!S.token)return;const ok=await loadSocket();if(!ok){setConn('offline','Live Sync Offline');return}if(S.socket)S.socket.disconnect();S.socket=io(API_BASE,{auth:{attempt_token:S.token},reconnection:true,reconnectionDelay:700,reconnectionDelayMax:3500,transports:['polling','websocket']});S.socket.on('connect',()=>{setConn('online','Live Sync');S.socket.emit('contestant:watch',{competition_id:S.attempt?.competition?.id||S.competition?.id});S.socket.emit('time:sync',{},r=>{if(r?.server_now)S.serverOffset=r.server_now-Date.now()});if(S.pendingSave)queueSave(30)});S.socket.on('disconnect',()=>setConn('connecting','Reconnecting'));S.socket.on('connect_error',()=>setConn('offline','Live Sync Offline'));S.socket.on('server:hello',p=>{if(p?.server_now)S.serverOffset=p.server_now-Date.now()});S.socket.on('competition:status',p=>{if(!p)return;if(S.competition)S.competition.status=p.status;if(S.attempt?.competition)S.attempt.competition.status=p.status;if(p.status==='closed'&&S.attempt?.state==='playing')toast('Competition has been closed. Your latest saved board is being finalized.','error')});S.socket.on('leaderboard:updated',p=>{if(p?.leaderboard){E.leaderboardPanel.classList.remove('hidden');renderLeaderboard(p.leaderboard);const mine=p.leaderboard.find(r=>r.attempt_id===S.attempt?.id);if(mine)E.resultRank.textContent=`#${mine.rank}`}});S.socket.on('attempt:timeup',p=>{if(p?.attempt)finishFromServer(p.attempt,null,true)});S.socket.on('attempt:submitted',p=>{if(p?.attempt&&S.attempt?.state==='playing')finishFromServer(p.attempt,null,false)});S.socket.on('competition:reset',p=>{clearActive();S.token=null;S.attempt=null;S.selected=null;toast(p?.message||'Competition reset by administrator.','error');if(S.socket)S.socket.disconnect();setTimeout(()=>{S.competition=null;S.contestant=null;showView(E.lobby);health()},800)})}
 
-const state = { competition:null, contestant:null, attempt:null, token:null, puzzle:'', board:Array(81).fill('0'), selected:null, history:[], saveTimer:null, saving:false, pendingSave:false, socket:null, serverOffset:0, timerRAF:null };
+E.joinForm.addEventListener('submit',async e=>{e.preventDefault();msg(E.joinMessage,'Checking competition…');try{const code=E.code.value.trim().toUpperCase(),body={contestant_no:E.no.value.trim(),full_name:E.name.value.trim(),school_team:E.school.value.trim()},d=await api(`/api/competitions/${encodeURIComponent(code)}/check-in`,{method:'POST',body});S.competition=d.competition;S.contestant=d.contestant;localStorage.setItem('sudoku_live_last_identity',JSON.stringify({code,...body}));E.readyTitle.textContent=S.competition.name;E.readyDescription.textContent=S.competition.description||'Solve accurately and submit as fast as you can.';E.readyName.textContent=S.contestant.full_name;E.readyNo.textContent=S.contestant.contestant_no;E.readyOrg.textContent=S.competition.organization||'Competition Organizer';E.readyDifficulty.textContent=S.competition.difficulty;E.readyLimit.textContent=fmtLimit(S.competition.time_limit_minutes);E.readyParticipation.textContent=S.competition.participation_mode==='limited'?`${S.competition.slots_remaining} slot(s) remaining`:'Open Play';E.startBtn.textContent=d.has_active_attempt?'RESUME SUDOKU →':'START SUDOKU →';msg(E.joinMessage,'');showView(E.ready)}catch(err){msg(E.joinMessage,err.message,'error')}});
+E.startBtn.addEventListener('click',async()=>{if(!S.competition||!S.contestant)return;E.startBtn.disabled=true;msg(E.readyMessage,'Securing your official attempt…');try{const remembered=localStorage.getItem('sudoku_live_active_token')||'',d=await api(`/api/competitions/${encodeURIComponent(S.competition.code)}/start`,{method:'POST',body:{contestant_no:S.contestant.contestant_no,full_name:S.contestant.full_name,attempt_token:remembered}});S.token=d.attempt_token;S.attempt=d.attempt;S.serverOffset=(d.server_now||Date.now())-Date.now();S.puzzle=d.attempt.competition.puzzle;S.board=mergeClues(d.attempt.answers,S.puzzle);S.competition={...S.competition,...d.attempt.competition};S.timeUpHandled=false;storeActive();enterGame();await connectSocket();toast(d.resumed?'Attempt resumed. Official timer continued.':'Official timer started.','success')}catch(err){msg(E.readyMessage,err.message,'error')}finally{E.startBtn.disabled=false}});
 
-function showView(el){ [els.lobby,els.ready,els.game,els.result].forEach(v=>v.classList.remove('active')); el.classList.add('active'); window.scrollTo({top:0,behavior:'smooth'}); }
-function message(el,text,type=''){ el.textContent=text||''; el.className='form-message'+(type?` ${type}`:''); }
-function toast(text,type=''){ const d=document.createElement('div'); d.className='toast '+type; d.textContent=text; els.toasts.appendChild(d); setTimeout(()=>d.remove(),3500); }
-function setConnection(mode,text){ els.badge.className=`status-pill status-${mode}`; els.badge.querySelector('span:last-child').textContent=text; }
-function formatTime(ms){ ms=Math.max(0,Number(ms)||0); const m=Math.floor(ms/60000), s=Math.floor((ms%60000)/1000), x=Math.floor(ms%1000); return `${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}.${String(x).padStart(3,'0')}`; }
-function normalizeDigits(v){ return String(v??'').replace(/[^0-9]/g,'').slice(0,81); }
-async function api(path,opts={}){
-  const headers={...(opts.headers||{})}; if(opts.body && !(opts.body instanceof FormData)){ headers['Content-Type']='application/json'; if(typeof opts.body!=='string') opts.body=JSON.stringify(opts.body); }
-  const res=await fetch(API_BASE+path,{...opts,headers}); let data={}; try{data=await res.json();}catch{}
-  if(!res.ok) throw new Error(data.error||`Request failed (${res.status})`); return data;
-}
-function storeActive(){
-  if(state.token) localStorage.setItem('sudoku_live_active_token',state.token);
-  if(state.attempt) localStorage.setItem('sudoku_live_cached_attempt',JSON.stringify({attempt:state.attempt,board:state.board,competition:state.competition,contestant:state.contestant,token:state.token}));
-}
-function clearActive(){ localStorage.removeItem('sudoku_live_active_token'); localStorage.removeItem('sudoku_live_cached_attempt'); }
-function mergeClues(answers,puzzle){ const a=(normalizeDigits(answers)+'0'.repeat(81)).slice(0,81).split(''); for(let i=0;i<81;i++) if(puzzle[i]&&puzzle[i]!=='0') a[i]=puzzle[i]; return a; }
+function enterGame(){showView(E.game);E.gameTitle.textContent=S.attempt?.competition?.name||S.competition?.name||'Sudoku Competition';const c=S.contestant||S.attempt?.contestant;E.gamePlayer.textContent=`${c?.contestant_no||''} · ${c?.full_name||''}`;renderBoard();renderPads();startTimer();updateProgress();setTimeout(()=>selectFirstEditable(),50)}
+function renderPads(){for(const wrap of [E.numberPad,E.desktopPad]){wrap.innerHTML='';for(let n=1;n<=9;n++){const b=document.createElement('button');b.className='number-key';b.textContent=n;b.type='button';b.addEventListener('click',()=>setValue(String(n)));wrap.appendChild(b)}}}
+function renderBoard(){E.board.innerHTML='';for(let i=0;i<81;i++){const b=document.createElement('button');b.type='button';b.className='sudoku-cell';b.dataset.index=i;b.setAttribute('role','gridcell');b.setAttribute('aria-label',`Row ${Math.floor(i/9)+1}, column ${i%9+1}`);b.tabIndex=i===0?0:-1;if(Math.floor(i/9)%3===2&&Math.floor(i/9)!==8)b.classList.add('box-bottom');if(S.puzzle[i]!=='0')b.classList.add('clue');else if(S.board[i]!=='0')b.classList.add('player-value');b.textContent=S.board[i]==='0'?'':S.board[i];b.addEventListener('click',()=>selectCell(i,true));E.board.appendChild(b)}updateSelection()}
+function selectCell(i,focus=false){if(i<0||i>80)return;S.selected=i;updateSelection();if(focus){const cell=E.board.children[i];cell?.focus({preventScroll:true})}}
+function selectFirstEditable(){if(S.selected!=null)return;const i=S.puzzle.indexOf('0');if(i>=0)selectCell(i,false)}
+function updateSelection(){[...E.board.children].forEach((el,i)=>{el.classList.toggle('selected',i===S.selected);el.tabIndex=i===S.selected?0:-1})}
+function moveSelection(dr,dc){let i=S.selected==null?0:S.selected,r=Math.floor(i/9),c=i%9;r=Math.max(0,Math.min(8,r+dr));c=Math.max(0,Math.min(8,c+dc));selectCell(r*9+c,true)}
+function setValue(v){if(S.attempt?.state!=='playing'||S.selected==null)return;if(S.puzzle[S.selected]!=='0')return;S.board[S.selected]=v;const cell=E.board.children[S.selected];cell.textContent=v==='0'?'':v;cell.classList.toggle('player-value',v!=='0');updateProgress();storeActive();queueSave()}
+function updateProgress(){const entered=S.board.reduce((n,v,i)=>n+(S.puzzle[i]==='0'&&v!=='0'?1:0),0),blanks=[...S.puzzle].filter(x=>x==='0').length,filled=81-blanks+entered;E.filled.textContent=filled;E.progress.style.width=`${Math.min(100,(filled/81)*100)}%`;const editable=S.attempt?.state==='playing'&&S.competition?.status!=='closed';E.submit.disabled=!editable}
+function queueSave(delay=350){if(S.attempt?.state!=='playing')return;clearTimeout(S.saveTimer);S.pendingSave=true;E.saveStatus.textContent=navigator.onLine?'Saving…':'Offline — latest server save will be used at time limit';S.saveTimer=setTimeout(saveNow,delay)}
+async function saveNow(){if(S.saving||!S.pendingSave||!S.token||S.attempt?.state!=='playing')return;S.saving=true;S.pendingSave=false;try{const d=await api('/api/attempt/answers',{method:'PUT',headers:{'X-Attempt-Token':S.token},body:{answers:S.board.join('')}});E.saveStatus.textContent='All changes saved';if(d.server_now)S.serverOffset=d.server_now-Date.now();if(S.attempt)S.attempt.last_saved_at=d.last_saved_at;storeActive()}catch(err){if(err.data?.submitted){await refreshAttemptAfterDeadline();return}S.pendingSave=true;E.saveStatus.textContent=navigator.onLine?'Save retry pending':'Offline — reconnect to sync'}finally{S.saving=false}}
+function startTimer(){cancelAnimationFrame(S.timerRAF);const tick=()=>{if(!S.attempt)return;const now=Date.now()+S.serverOffset,elapsed=S.attempt.state==='submitted'?Number(S.attempt.elapsed_ms||0):Math.max(0,now-Number(S.attempt.started_at||now)),remaining=S.attempt.state==='submitted'?0:Math.max(0,Number(S.attempt.deadline_at||now)-now);E.elapsed.textContent=fmt(elapsed);E.remaining.textContent=fmt(remaining);E.remaining.closest('.timer-block')?.classList.toggle('timer-warning',remaining>0&&remaining<=60000);if(S.attempt.state==='playing'&&remaining<=0&&!S.timeUpHandled){S.timeUpHandled=true;E.saveStatus.textContent='Time is up — finalizing latest saved board…';lockBoard();refreshAttemptAfterDeadline()}S.timerRAF=requestAnimationFrame(tick)};tick()}
+function lockBoard(){E.submit.disabled=true;E.erase.disabled=true;E.dErase.disabled=true;for(const b of E.numberPad.querySelectorAll('button'))b.disabled=true;for(const b of E.desktopPad.querySelectorAll('button'))b.disabled=true}
+function unlockBoard(){E.erase.disabled=false;E.dErase.disabled=false;for(const b of E.numberPad.querySelectorAll('button'))b.disabled=false;for(const b of E.desktopPad.querySelectorAll('button'))b.disabled=false;updateProgress()}
+async function refreshAttemptAfterDeadline(){try{const d=await api('/api/attempt',{headers:{'X-Attempt-Token':S.token}});if(d.server_now)S.serverOffset=d.server_now-Date.now();if(d.attempt?.state==='submitted')finishFromServer(d.attempt,null,d.attempt.submission_type==='time_limit');else{S.timeUpHandled=false;unlockBoard()}}catch{setTimeout(()=>refreshAttemptAfterDeadline(),1500)}}
 
-async function healthCheck(){
-  try{ const r=await fetch(API_BASE+'/health',{cache:'no-store'}); if(!r.ok) throw 0; setConnection('online','Server Online'); }
-  catch{ setConnection('offline','Server Offline'); }
-}
-async function loadSocketClient(){
-  if(window.io) return true;
-  return new Promise(resolve=>{ const s=document.createElement('script'); s.src=API_BASE+'/socket.io/socket.io.js'; s.async=true; s.onload=()=>resolve(true); s.onerror=()=>resolve(false); document.head.appendChild(s); });
-}
-async function connectAttemptSocket(){
-  if(!state.token) return;
-  const ok=await loadSocketClient(); if(!ok){setConnection('offline','Live Sync Offline');return;}
-  if(state.socket) state.socket.disconnect();
-  state.socket=io(API_BASE,{auth:{attempt_token:state.token},reconnection:true,reconnectionDelay:700,reconnectionDelayMax:3500,transports:['polling','websocket']});
-  state.socket.on('connect',()=>{ setConnection('online','Live Sync'); state.socket.emit('contestant:watch',{competition_id:state.attempt?.competition?.id || state.competition?.id}); state.socket.emit('time:sync',{},r=>{if(r?.server_now)state.serverOffset=r.server_now-Date.now();}); if(state.pendingSave) queueSave(50); });
-  state.socket.on('disconnect',()=>setConnection('connecting','Reconnecting'));
-  state.socket.on('connect_error',()=>setConnection('offline','Live Sync Offline'));
-  state.socket.on('server:hello',p=>{ if(p?.server_now)state.serverOffset=p.server_now-Date.now(); });
-  state.socket.on('competition:status',p=>{ if(!p)return; if(state.competition)state.competition.status=p.status; if(state.attempt?.competition)state.attempt.competition.status=p.status; updateProgress(); if(p.status==='closed'&&state.attempt?.state==='playing')toast('Competition has been closed by the administrator. Final submission is currently locked.','error'); });
-  state.socket.on('leaderboard:updated',p=>{ if(p?.leaderboard){ els.leaderboardPanel.classList.remove('hidden'); renderLeaderboard(p.leaderboard); const mine=p.leaderboard.find(r=>r.attempt_id===state.attempt?.id); if(mine)els.resultRank.textContent=`#${mine.rank}`; } });
-  state.socket.on('competition:reset',p=>{ clearActive(); state.token=null; state.attempt=null; state.selected=null; toast(p?.message||'This competition was reset by the administrator.','error'); if(state.socket)state.socket.disconnect(); setTimeout(()=>{state.competition=null;state.contestant=null;showView(els.lobby);healthCheck();},900); });
-}
-
-els.joinForm.addEventListener('submit',async e=>{
-  e.preventDefault(); message(els.joinMessage,'Checking competition…');
-  try{
-    const code=els.code.value.trim().toUpperCase(); const body={contestant_no:els.no.value.trim(),full_name:els.name.value.trim(),school_team:els.school.value.trim()};
-    const data=await api(`/api/competitions/${encodeURIComponent(code)}/check-in`,{method:'POST',body});
-    state.competition=data.competition; state.contestant=data.contestant;
-    localStorage.setItem('sudoku_live_last_identity',JSON.stringify({code,contestant_no:body.contestant_no,full_name:body.full_name,school_team:body.school_team}));
-    els.readyTitle.textContent=state.competition.name; els.readyDescription.textContent=state.competition.description||'Solve accurately and submit as fast as you can.';
-    els.readyName.textContent=state.contestant.full_name; els.readyNo.textContent=state.contestant.contestant_no; els.readyOrg.textContent=state.competition.organization||'Competition Organizer';
-    els.startBtn.textContent=data.has_active_attempt?'RESUME SUDOKU →':'START SUDOKU →'; message(els.joinMessage,''); showView(els.ready);
-  }catch(err){ message(els.joinMessage,err.message,'error'); }
-});
-
-els.startBtn.addEventListener('click',async()=>{
-  if(!state.competition||!state.contestant)return; els.startBtn.disabled=true; message(els.readyMessage,'Securing your official attempt…');
-  try{
-    const remembered=localStorage.getItem('sudoku_live_active_token')||'';
-    const data=await api(`/api/competitions/${encodeURIComponent(state.competition.code)}/start`,{method:'POST',body:{contestant_no:state.contestant.contestant_no,full_name:state.contestant.full_name,attempt_token:remembered}});
-    state.token=data.attempt_token; state.attempt=data.attempt; state.serverOffset=(data.server_now||Date.now())-Date.now(); state.puzzle=data.attempt.competition.puzzle; state.board=mergeClues(data.attempt.answers,state.puzzle); state.history=[];
-    state.competition={...state.competition,...data.attempt.competition}; storeActive(); enterGame(); await connectAttemptSocket(); toast(data.resumed?'Attempt resumed. Timer continued running.':'Official timer started.','success');
-  }catch(err){message(els.readyMessage,err.message,'error');}finally{els.startBtn.disabled=false;}
-});
-
-function enterGame(){
-  showView(els.game); els.gameTitle.textContent=state.attempt?.competition?.name||state.competition?.name||'Sudoku Competition'; els.gamePlayer.textContent=`${state.contestant?.contestant_no||state.attempt?.contestant?.contestant_no} · ${state.contestant?.full_name||state.attempt?.contestant?.full_name}`;
-  renderBoard(); renderPads(); startTimer(); updateProgress();
-}
-function renderPads(){
-  for(const wrap of [els.numberPad,els.desktopPad]){ wrap.innerHTML=''; for(let n=1;n<=9;n++){ const b=document.createElement('button'); b.className='number-key'; b.textContent=n; b.type='button'; b.addEventListener('click',()=>setValue(String(n))); wrap.appendChild(b); } }
-}
-function renderBoard(){
-  els.board.innerHTML=''; for(let i=0;i<81;i++){ const b=document.createElement('button'); b.type='button'; b.className='sudoku-cell'; if(Math.floor(i/9)%3===2 && Math.floor(i/9)!==8)b.classList.add('box-bottom'); const clue=state.puzzle[i]!=='0'; if(clue)b.classList.add('clue'); else if(state.board[i]!=='0')b.classList.add('player-value'); b.textContent=state.board[i]==='0'?'':state.board[i]; b.dataset.index=i; b.setAttribute('role','gridcell'); b.addEventListener('click',()=>selectCell(i)); els.board.appendChild(b); } applyHighlights();
-}
-function selectCell(i){ state.selected=i; applyHighlights(); }
-function applyHighlights(){
-  const cells=[...els.board.children], sel=state.selected; cells.forEach((c,i)=>{c.classList.remove('selected','peer','same'); if(sel===null)return; if(i===sel)c.classList.add('selected'); const sr=Math.floor(sel/9),sc=sel%9,r=Math.floor(i/9),col=i%9; const sameBox=Math.floor(sr/3)===Math.floor(r/3)&&Math.floor(sc/3)===Math.floor(col/3); if(i!==sel&&(r===sr||col===sc||sameBox))c.classList.add('peer'); const v=state.board[sel]; if(v!=='0'&&state.board[i]===v&&i!==sel)c.classList.add('same'); });
-}
-function setValue(v){
-  const i=state.selected; if(i===null||state.puzzle[i]!=='0'||state.attempt?.state!=='playing')return;
-  if(state.board[i]===v)return; state.history.push({i,prev:state.board[i]}); if(state.history.length>100)state.history.shift(); state.board[i]=v; const cell=els.board.children[i]; cell.textContent=v==='0'?'':v; cell.classList.toggle('player-value',v!=='0'); applyHighlights(); updateProgress(); storeActive(); queueSave();
-}
-function erase(){setValue('0')}
-function undo(){const h=state.history.pop();if(!h)return;state.selected=h.i;state.board[h.i]=h.prev;const cell=els.board.children[h.i];cell.textContent=h.prev==='0'?'':h.prev;cell.classList.toggle('player-value',h.prev!=='0');applyHighlights();updateProgress();storeActive();queueSave();}
-els.erase.addEventListener('click',erase); els.dErase.addEventListener('click',erase); els.undo.addEventListener('click',undo); els.dUndo.addEventListener('click',undo); els.unselect.addEventListener('click',()=>{state.selected=null;applyHighlights();});
-document.addEventListener('keydown',e=>{ if(!els.game.classList.contains('active'))return; if(/^[1-9]$/.test(e.key))setValue(e.key); else if(e.key==='Backspace'||e.key==='Delete'||e.key==='0')erase(); else if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==='z'){e.preventDefault();undo();} });
-function updateProgress(){ const count=state.board.filter(v=>v!=='0').length; els.filled.textContent=count; els.progress.style.width=`${count/81*100}%`; const status=state.competition?.status||state.attempt?.competition?.status; els.submit.disabled=!navigator.onLine||status!=='open'; }
-function queueSave(delay=450){ clearTimeout(state.saveTimer); state.pendingSave=true; els.saveStatus.textContent=navigator.onLine?'Saving…':'Offline — changes queued'; state.saveTimer=setTimeout(saveAnswers,delay); }
-async function saveAnswers(){
-  if(!state.token||state.attempt?.state!=='playing'||state.saving)return; state.saving=true;
-  try{ const r=await api('/api/attempt/answers',{method:'PUT',headers:{'X-Attempt-Token':state.token},body:{answers:state.board.join('')}}); state.pendingSave=false; els.saveStatus.textContent='All changes saved'; state.attempt.last_saved_at=r.last_saved_at; storeActive(); }
-  catch(err){ state.pendingSave=true; els.saveStatus.textContent=navigator.onLine?'Save pending — retrying':'Offline — changes queued'; setTimeout(()=>{if(state.pendingSave&&navigator.onLine)saveAnswers()},2200); }
-  finally{state.saving=false;}
-}
-function startTimer(){ cancelAnimationFrame(state.timerRAF); const tick=()=>{ if(state.attempt?.started_at){ const now=Date.now()+state.serverOffset; const end=state.attempt.submitted_at||now; els.timer.textContent=formatTime((state.attempt.elapsed_ms??(end-state.attempt.started_at))); if(!state.attempt.submitted_at) state.attempt.elapsed_ms=null; } state.timerRAF=requestAnimationFrame(tick); }; tick(); }
-
-els.submit.addEventListener('click',()=>{ if(!navigator.onLine){toast('Internet connection is required for final submission.','error');return;} const blanks=state.board.filter(v=>v==='0').length; if(blanks) toast(`${blanks} cell${blanks===1?' is':'s are'} still blank. You may still submit if intentional.`); els.modal.classList.add('open'); els.modal.setAttribute('aria-hidden','false'); });
-els.cancelSubmit.addEventListener('click',()=>closeModal()); $('.modal-backdrop').addEventListener('click',()=>closeModal());
-function closeModal(){els.modal.classList.remove('open');els.modal.setAttribute('aria-hidden','true');}
-els.confirmSubmit.addEventListener('click',async()=>{
-  closeModal(); els.submit.disabled=true; els.confirmSubmit.disabled=true; els.saveStatus.textContent='Submitting securely…';
-  try{
-    const data=await api('/api/attempt/submit',{method:'POST',headers:{'X-Attempt-Token':state.token},body:{answers:state.board.join('')}}); state.attempt=data.result; storeActive(); showResult(data); toast('Final submission recorded.','success');
-  }catch(err){toast(err.message,'error');els.submit.disabled=false;}finally{els.confirmSubmit.disabled=false;}
-});
-function showResult(data){
-  cancelAnimationFrame(state.timerRAF); showView(els.result); const r=data.result; const perfect=!!r.is_perfect; els.resultIcon.textContent=perfect?'✓':'!'; els.resultIcon.classList.toggle('imperfect',!perfect); els.resultHeadline.textContent=perfect?'Perfect solution!':'Submission recorded';
-  els.resultSubline.textContent=perfect?'Your solution is 100% correct. Ranking is determined by official elapsed time.':'Your submission contains an incorrect or blank cell. Correctness is prioritized before time.';
-  els.resultCorrect.textContent=`${r.correct_count}/81`; els.resultAccuracy.textContent=`${Number(r.accuracy).toFixed(2)}%`; els.resultTime.textContent=formatTime(r.elapsed_ms); els.resultRank.textContent=data.rank?`#${data.rank}`:(data.leaderboard_visible?'Calculating…':'Hidden');
-  if(data.leaderboard_visible) loadPublicLeaderboard(); else els.leaderboardPanel.classList.add('hidden');
-}
-async function loadPublicLeaderboard(){ try{const d=await api(`/api/competitions/${encodeURIComponent(state.competition?.code||state.attempt?.competition?.code)}/leaderboard`);els.leaderboardPanel.classList.remove('hidden');renderLeaderboard(d.leaderboard);const mine=d.leaderboard.find(x=>x.attempt_id===state.attempt?.id);if(mine)els.resultRank.textContent=`#${mine.rank}`;}catch{} }
-function renderLeaderboard(rows){ els.publicLeaderboard.innerHTML=''; if(!rows?.length){els.publicLeaderboard.innerHTML='<p class="muted small">No submitted results yet.</p>';return;} rows.slice(0,20).forEach(r=>{const d=document.createElement('div');d.className='leader-row';d.innerHTML=`<span class="rank-no ${r.rank<=3?'podium':''}">#${r.rank}</span><span class="leader-name"><strong>${escapeHtml(r.full_name)}</strong><small>${escapeHtml(r.contestant_no)}${r.school_team?' · '+escapeHtml(r.school_team):''}</small></span><span class="leader-time"><strong>${formatTime(r.elapsed_ms)}</strong><small>${r.correct_count}/81 · ${Number(r.accuracy).toFixed(1)}%</small></span>`;els.publicLeaderboard.appendChild(d);}); }
-function escapeHtml(s){return String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));}
-els.returnHome.addEventListener('click',()=>{ clearActive(); state.token=null; state.attempt=null; state.selected=null; if(state.socket)state.socket.disconnect(); showView(els.lobby); });
-
-window.addEventListener('online',()=>{healthCheck();updateProgress();if(state.pendingSave)queueSave(100);}); window.addEventListener('offline',()=>{setConnection('offline','Offline');updateProgress();els.saveStatus.textContent='Offline — changes queued';});
-
-async function restoreAttempt(){
-  const token=localStorage.getItem('sudoku_live_active_token'); if(!token)return false;
-  try{
-    const d=await api('/api/attempt',{headers:{'X-Attempt-Token':token}}); state.token=token; state.attempt=d.attempt; state.serverOffset=(d.server_now||Date.now())-Date.now(); state.puzzle=d.attempt.competition.puzzle; state.board=mergeClues(d.attempt.answers,state.puzzle); state.competition=d.attempt.competition; state.contestant=d.attempt.contestant; storeActive();
-    if(d.attempt.state==='playing'){enterGame();await connectAttemptSocket();toast('Active attempt restored. Official timer continued running.');}
-    else{showResult({result:d.attempt,rank:null,leaderboard_visible:false});await connectAttemptSocket();}
-    return true;
-  }catch{
-    try{const cached=JSON.parse(localStorage.getItem('sudoku_live_cached_attempt')||'null'); if(cached?.attempt?.state==='playing'&&!navigator.onLine){state.token=cached.token;state.attempt=cached.attempt;state.competition=cached.competition;state.contestant=cached.contestant;state.puzzle=cached.attempt.competition.puzzle;state.board=mergeClues(cached.board?.join?.('')||cached.attempt.answers,state.puzzle);enterGame();setConnection('offline','Offline');els.saveStatus.textContent='Offline — reconnect to sync';return true;}}catch{}
-    return false;
-  }
-}
-
-(async function init(){
-  if('serviceWorker' in navigator){try{await navigator.serviceWorker.register('./sw.js')}catch{}}
-  const last=JSON.parse(localStorage.getItem('sudoku_live_last_identity')||'null'); if(last){els.code.value=last.code||'';els.no.value=last.contestant_no||'';els.name.value=last.full_name||'';els.school.value=last.school_team||'';}
-  await healthCheck(); await restoreAttempt();
-})();
+E.erase.addEventListener('click',()=>setValue('0'));E.dErase.addEventListener('click',()=>setValue('0'));
+document.addEventListener('keydown',e=>{if(!E.game.classList.contains('active')||S.attempt?.state!=='playing')return;const key=e.key;if(['ArrowLeft','ArrowRight','ArrowUp','ArrowDown'].includes(key)){e.preventDefault();if(key==='ArrowLeft')moveSelection(0,-1);if(key==='ArrowRight')moveSelection(0,1);if(key==='ArrowUp')moveSelection(-1,0);if(key==='ArrowDown')moveSelection(1,0);return}if(/^[1-9]$/.test(key)){e.preventDefault();setValue(key);return}if(key==='Backspace'||key==='Delete'||key==='0'){e.preventDefault();setValue('0')}});
+E.submit.addEventListener('click',()=>{if(S.attempt?.state!=='playing')return;E.modal.classList.add('open');E.modal.setAttribute('aria-hidden','false')});
+E.cancelSubmit.addEventListener('click',()=>closeModal());E.modal.querySelector('.modal-backdrop')?.addEventListener('click',closeModal);function closeModal(){E.modal.classList.remove('open');E.modal.setAttribute('aria-hidden','true')}
+E.confirmSubmit.addEventListener('click',async()=>{closeModal();E.submit.disabled=true;E.confirmSubmit.disabled=true;E.saveStatus.textContent='Submitting final answer…';try{if(S.pendingSave)await saveNow();const d=await api('/api/attempt/submit',{method:'POST',headers:{'X-Attempt-Token':S.token},body:{answers:S.board.join('')}});finishFromServer(d.result,d.rank,false);if(d.leaderboard_visible)loadLeaderboard()}catch(err){if(err.data?.result){finishFromServer(err.data.result,null,err.data.result.submission_type==='time_limit')}else{toast(err.message,'error');E.submit.disabled=false}}finally{E.confirmSubmit.disabled=false}});
+function finishFromServer(attempt,rank=null,timeUp=false){S.attempt=attempt;S.board=mergeClues(attempt.answers,attempt.competition.puzzle);S.puzzle=attempt.competition.puzzle;S.timeUpHandled=true;storeActive();lockBoard();cancelAnimationFrame(S.timerRAF);E.resultCorrect.textContent=`${attempt.correct_count}/81`;E.resultAccuracy.textContent=`${Number(attempt.accuracy||0).toFixed(2)}%`;E.resultTime.textContent=fmt(attempt.elapsed_ms);E.resultRank.textContent=rank?`#${rank}`:'Pending';E.resultIcon.textContent=attempt.is_perfect?'✓':timeUp?'⏱':'•';E.resultHeadline.textContent=timeUp?'Time is up — sheet auto-submitted':attempt.is_perfect?'Perfect submission':'Submission recorded';E.resultSubline.textContent=timeUp?'Your latest server-saved answers were automatically submitted at the official time limit.':'Your result has been secured by the competition server.';showView(E.result);if(S.competition?.show_live_leaderboard||S.competition?.status==='closed')loadLeaderboard()}
+async function loadLeaderboard(){try{const d=await api(`/api/competitions/${encodeURIComponent(S.competition.code)}/leaderboard`);E.leaderboardPanel.classList.remove('hidden');renderLeaderboard(d.leaderboard);const mine=d.leaderboard.find(r=>r.attempt_id===S.attempt?.id);if(mine)E.resultRank.textContent=`#${mine.rank}`}catch{}}
+function renderLeaderboard(rows){E.publicLeaderboard.innerHTML=rows.slice(0,20).map(r=>`<div class="leaderboard-row ${r.rank<=3?'top':''}"><span>#${r.rank}</span><strong>${escapeHtml(r.full_name)}</strong><small>${r.correct_count}/81 · ${fmt(r.elapsed_ms)}</small></div>`).join('')||'<p class="muted small">No results yet.</p>'}
+function escapeHtml(s){return String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
+E.returnHome.addEventListener('click',()=>{clearActive();if(S.socket)S.socket.disconnect();S.competition=null;S.contestant=null;S.attempt=null;S.token=null;S.selected=null;showView(E.lobby);health()});
+async function restoreAttempt(){const token=localStorage.getItem('sudoku_live_active_token');if(!token)return false;try{const d=await api('/api/attempt',{headers:{'X-Attempt-Token':token}});S.token=token;S.attempt=d.attempt;S.serverOffset=(d.server_now||Date.now())-Date.now();S.competition=d.attempt.competition;S.contestant=d.attempt.contestant;S.puzzle=d.attempt.competition.puzzle;S.board=mergeClues(d.attempt.answers,S.puzzle);if(d.attempt.state==='submitted'){finishFromServer(d.attempt,null,d.attempt.submission_type==='time_limit');await connectSocket();return true}storeActive();enterGame();await connectSocket();return true}catch{try{const cached=JSON.parse(localStorage.getItem('sudoku_live_cached_attempt')||'null');if(cached?.attempt?.state==='playing'&&!navigator.onLine){S.token=cached.token;S.attempt=cached.attempt;S.competition=cached.competition;S.contestant=cached.contestant;S.serverOffset=Number(cached.serverOffset||0);S.puzzle=cached.attempt.competition.puzzle;S.board=mergeClues(cached.board?.join?.('')||cached.attempt.answers,S.puzzle);enterGame();setConn('offline','Offline');E.saveStatus.textContent='Offline — latest server save will be used at time limit';return true}}catch{}return false}}
+window.addEventListener('online',()=>{setConn('connecting','Connecting');if(S.socket&&!S.socket.connected)S.socket.connect();if(S.pendingSave)queueSave(20)});window.addEventListener('offline',()=>setConn('offline','Offline'));
+(async function init(){if('serviceWorker'in navigator){try{await navigator.serviceWorker.register('./sw.js')}catch{}}const last=JSON.parse(localStorage.getItem('sudoku_live_last_identity')||'null');if(last){E.code.value=last.code||'';E.no.value=last.contestant_no||'';E.name.value=last.full_name||'';E.school.value=last.school_team||''}await health();await restoreAttempt()})();

@@ -69,34 +69,29 @@
         </section>
 
         <section class="admin-tab" data-panel="setup">
-          <div class="page-heading"><div><span class="eyebrow">EVENT BUILDER</span><h1>Competition Setup</h1><p class="muted">Create one contest code, then import multiple matched HARD Sudoku materials and master keys in bulk.</p></div></div>
+          <div class="page-heading"><div><span class="eyebrow">EVENT BUILDER</span><h1>Competition Setup</h1><p class="muted">Choose the difficulty, official time limit, and participant mode. The system generates equivalent 9×9 Sudoku variants and answer keys automatically.</p></div></div>
           <div class="setup-grid">
             <form id="createCompetitionForm" class="dashboard-card glass form-grid">
               <div class="section-heading full"><div><span class="eyebrow">NEW COMPETITION</span><h2>Event details</h2></div></div>
-              <label class="field"><span>Competition Name</span><input id="newName" placeholder="Division Sudoku Challenge 2026" required /></label>
-              <label class="field"><span>Competition Code</span><input id="newCode" placeholder="DSC-2026" required /></label>
+              <label class="field"><span>Competition Name</span><input id="newName" placeholder="Sudoku Championship Round 2026" required /></label>
+              <label class="field"><span>Competition Code</span><input id="newCode" placeholder="CHAMP-2026" required /></label>
               <label class="field full"><span>Organizer / School</span><input id="newOrg" placeholder="Organization or school name" /></label>
-              <label class="field full"><span>Description / Instructions</span><textarea id="newDescription" rows="3" placeholder="Competition instructions shown before contestants start."></textarea></label>
-              <label class="switch-row full"><span><strong>Allow self-registration</strong><small>Contestants may join even if not preloaded.</small></span><input id="newSelfReg" type="checkbox" checked /><i></i></label>
-              <label class="switch-row full"><span><strong>Show live leaderboard</strong><small>Normally keep this off until results are ready.</small></span><input id="newShowLeaderboard" type="checkbox" /><i></i></label>
-              <div class="material-policy-card full">
-                <span class="difficulty-badge">HARD</span>
-                <div><strong>Material difficulty is locked to HARD</strong><p>Create the contest first. Then import the Test Materials ZIP and matching Master Keys ZIP once for this contest.</p></div>
+              <label class="field full"><span>Description / Instructions</span><textarea id="newDescription" rows="4" placeholder="Instructions shown before contestants start."></textarea></label>
+
+              <label class="field"><span>Difficulty</span><select id="newDifficulty" required><option value="EASY">EASY</option><option value="MODERATE">MODERATE</option><option value="DIFFICULT" selected>DIFFICULT</option><option value="EXTREME">EXTREME</option></select></label>
+              <label class="field"><span>Time Limit (minutes)</span><input id="newTimeLimit" type="number" min="1" max="720" value="30" required /></label>
+              <label class="field"><span>Participation Mode</span><select id="newParticipationMode"><option value="open" selected>Open Play / Unlimited</option><option value="limited">Limited Participants</option></select></label>
+              <label class="field" id="maxParticipantsField"><span>Maximum Participants</span><input id="newMaxParticipants" type="number" min="1" max="100000" value="50" /></label>
+
+              <label class="switch-row full"><span><strong>Open Registration</strong><small>ON: contestants may register using the contest code. OFF: pre-registered contestants only.</small></span><input id="newSelfReg" type="checkbox" checked /><i></i></label>
+              <label class="switch-row full"><span><strong>Show live leaderboard</strong><small>Normally keep this OFF until official results are ready.</small></span><input id="newShowLeaderboard" type="checkbox" /><i></i></label>
+
+              <div class="generator-card full">
+                <div class="generator-icon">9×9</div><div><span class="eyebrow">AUTOMATIC PUZZLE ENGINE</span><strong>No test/material import required</strong><p>The backend creates a validated base puzzle for the selected difficulty, then assigns each contestant a randomized equivalent variant with its private answer key. Variants preserve the same structural difficulty.</p></div>
               </div>
               <button class="btn btn-primary full" type="submit">Create Competition →</button><p id="createMessage" class="form-message full"></p>
             </form>
-            <div class="dashboard-card glass material-import-card">
-              <span class="eyebrow">BULK MATERIAL SET</span><h2>Import HARD Test Materials</h2>
-              <p class="muted small">Select the competition above, then upload the two ZIP files. Files are paired automatically by number/name, e.g. <strong>TEST_01.txt ↔ MASTER_01.txt</strong>.</p>
-              <div class="zip-pair-grid">
-                <label class="zip-drop"><span>① TEST MATERIALS ZIP</span><strong id="testZipName">Choose ZIP</strong><input id="testMaterialsZip" type="file" accept=".zip,application/zip" /></label>
-                <label class="zip-drop"><span>② MASTER KEYS ZIP</span><strong id="masterZipName">Choose ZIP</strong><input id="masterKeysZip" type="file" accept=".zip,application/zip" /></label>
-              </div>
-              <button id="importMaterialSetBtn" class="btn btn-secondary full" type="button">Validate & Import Material Set</button>
-              <p id="materialImportMessage" class="form-message"></p>
-              <div id="materialDistribution" class="material-distribution"></div>
-            </div>
-            <div class="dashboard-card glass guide-card"><span class="eyebrow">FAIR RANDOMIZATION</span><h2>One code. Different HARD tests.</h2><div class="check-list"><p>✓ Every test is paired with exactly one master key</p><p>✓ Assignment happens only when START is pressed</p><p>✓ Server randomly chooses among the least-assigned tests</p><p>✓ Refresh/reconnect keeps the same assigned test</p><p>✓ Contestants never see the internal Test ID</p></div><div class="info-box"><strong>Fairness</strong><p>Use equivalent HARD materials. The supplied sample ZIPs contain six isomorphic hard puzzles with the same structure/difficulty.</p></div></div>
+            <div class="dashboard-card glass guide-card"><span class="eyebrow">COMPETITION ENGINE</span><h2>Fair and server-controlled</h2><div class="check-list"><p>✓ EASY / MODERATE / DIFFICULT / EXTREME modes</p><p>✓ Unique-solution puzzle families</p><p>✓ Random equivalent puzzle per contestant</p><p>✓ Private answer key generated server-side</p><p>✓ Server-authoritative time limit & auto-submit</p><p>✓ Accuracy first, elapsed time as tie-breaker</p></div><div class="info-box"><strong>Important</strong><p>Difficulty, time limit, and participant limit become locked after the first official attempt starts.</p></div></div>
           </div>
         </section>
 
@@ -116,11 +111,11 @@
 
         <section class="admin-tab" data-panel="ranking">
           <div class="page-heading"><div><span class="eyebrow">OFFICIAL RESULTS</span><h1>Rankings</h1><p class="muted">Correctness first, then shortest server-measured elapsed time.</p></div><div class="heading-actions result-tools"><button id="printResultsBtn" class="icon-action-btn" title="Print official results" aria-label="Print official results"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 8V4h10v4M7 17H5a2 2 0 0 1-2-2v-4a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v4a2 2 0 0 1-2 2h-2M7 14h10v6H7z"/></svg></button><button id="exportXlsxBtn" class="icon-action-btn" title="Download Excel (.xlsx)" aria-label="Download Excel results"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v12m0 0 4-4m-4 4-4-4M5 19h14"/></svg><span class="file-badge">XLSX</span></button></div></div>
-          <div class="dashboard-card glass"><div class="ranking-note"><strong>Ranking logic</strong><span>Perfect (81/81) → Correct answers ↓ → Time ↑</span></div><div id="fullLeaderboard" class="ranking-table"></div></div>
+          <div class="dashboard-card glass"><div class="ranking-note"><strong>Ranking logic</strong><span>Accuracy / Correct answers ↓ → Shortest elapsed time ↑</span></div><div id="fullLeaderboard" class="ranking-table"></div></div>
         </section>
 
         <section class="admin-tab" data-panel="data">
-          <div class="page-heading"><div><span class="eyebrow">DATA PROTECTION</span><h1>Backup, Restore & Reset</h1><p class="muted">Protect official records and safely clear practice data without touching your imported test materials or master keys.</p></div></div>
+          <div class="page-heading"><div><span class="eyebrow">DATA PROTECTION</span><h1>Backup, Restore & Reset</h1><p class="muted">Protect official records and safely clear practice data without changing the contest configuration or generator settings.</p></div></div>
           <div class="data-tools-grid">
             <article class="data-tool-card dashboard-card glass">
               <div class="tool-icon backup-icon">⇩</div>
@@ -140,7 +135,7 @@
               <div class="tool-icon reset-icon">⌫</div>
               <span class="eyebrow">PRACTICE CLEANUP</span><h2>Reset Operational Data</h2>
               <p>Clears the <strong>selected competition's contestants, attempts, results, rankings, and live practice records</strong>, then returns it to Draft.</p>
-              <div class="preserve-note"><strong>Preserved:</strong> competition name/code, instructions, organizer, all HARD test materials, all MASTER KEYS, settings, and admin account.</div>
+              <div class="preserve-note"><strong>Preserved:</strong> competition name/code, instructions, organizer, difficulty, time limit, participation settings, generator configuration, and admin account.</div>
               <button id="resetOperationalBtn" class="btn btn-danger full">Reset Selected Competition</button>
             </article>
           </div>

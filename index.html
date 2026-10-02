@@ -55,14 +55,17 @@
         <span class="eyebrow">COMPETITION VERIFIED</span>
         <h1 id="readyTitle">Sudoku Competition</h1>
         <p id="readyDescription" class="muted"></p>
-        <div class="identity-strip">
+        <div class="identity-strip ready-meta-grid">
           <div><small>CONTESTANT</small><strong id="readyName">—</strong></div>
           <div><small>NUMBER</small><strong id="readyNo">—</strong></div>
           <div><small>ORGANIZER</small><strong id="readyOrg">—</strong></div>
+          <div><small>DIFFICULTY</small><strong id="readyDifficulty">—</strong></div>
+          <div><small>TIME LIMIT</small><strong id="readyLimit">—</strong></div>
+          <div><small>PARTICIPATION</small><strong id="readyParticipation">—</strong></div>
         </div>
         <div class="rules-box">
           <strong>Before you start</strong>
-          <p>The timer is controlled by the server. Refreshing, closing the app, or changing the device clock will not reset your official time. You have one final submission.</p>
+          <p>The server controls both elapsed time and the deadline. At 00:00 remaining, your latest server-saved sheet is automatically submitted. Refreshing, closing the app, or changing the device clock will not reset your time.</p>
         </div>
         <button id="startBtn" class="btn btn-primary btn-large">START SUDOKU <span>→</span></button>
         <p id="readyMessage" class="form-message" role="status"></p>
@@ -74,7 +77,11 @@
         <div class="game-main">
           <div class="game-header glass">
             <div class="game-event"><span class="eyebrow">LIVE ATTEMPT</span><h2 id="gameTitle">Sudoku Competition</h2><p id="gamePlayer">—</p></div>
-            <div class="timer-card"><small>OFFICIAL TIME</small><strong id="timer">00:00.000</strong><span id="saveStatus">All changes saved</span></div>
+            <div class="timer-card dual-timer-card">
+              <div class="timer-block"><small>TIME ELAPSED</small><strong id="timer">00:00.000</strong></div>
+              <div class="timer-block remaining-block"><small>TIME REMAINING</small><strong id="remainingTimer">00:00.000</strong></div>
+              <span id="saveStatus">All changes saved</span>
+            </div>
           </div>
 
           <div class="board-wrap glass">
@@ -83,10 +90,8 @@
 
           <div class="mobile-controls glass">
             <div class="number-pad" id="numberPad"></div>
-            <div class="tool-row">
+            <div class="tool-row single-tool-row">
               <button class="tool-btn" id="eraseBtn"><span>⌫</span><small>Erase</small></button>
-              <button class="tool-btn" id="undoBtn"><span>↶</span><small>Undo</small></button>
-              <button class="tool-btn" id="clearSelectionBtn"><span>◇</span><small>Unselect</small></button>
             </div>
           </div>
         </div>
@@ -96,19 +101,18 @@
             <span class="eyebrow">PROGRESS</span>
             <div class="progress-ring"><strong id="filledCount">0</strong><span>/ 81 filled</span></div>
             <div class="progress-track"><i id="progressBar"></i></div>
-            <p class="muted small">Original clue cells are locked. Your entries are automatically saved to the competition server.</p>
+            <p class="muted small">Original clue cells are locked. No hints, row/column highlighting, answer checking, or solving assistance is provided during play.</p>
           </div>
           <div class="side-card glass">
             <span class="eyebrow">NUMBER PAD</span>
             <div class="number-pad desktop-pad" id="desktopNumberPad"></div>
-            <div class="tool-row vertical-tools">
+            <div class="tool-row vertical-tools single-tool-row">
               <button class="tool-btn" id="desktopEraseBtn"><span>⌫</span><small>Erase</small></button>
-              <button class="tool-btn" id="desktopUndoBtn"><span>↶</span><small>Undo</small></button>
             </div>
           </div>
           <div class="side-card danger-card glass">
             <strong>Final submission</strong>
-            <p class="muted small">Your board will be locked permanently after submission.</p>
+            <p class="muted small">Your board locks after final submission. If time reaches 00:00, the server automatically submits your latest saved sheet.</p>
             <button id="submitBtn" class="btn btn-success full">SUBMIT FINAL ANSWER</button>
           </div>
         </aside>
