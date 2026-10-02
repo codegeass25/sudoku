@@ -90,7 +90,8 @@
 
           <div class="mobile-controls glass">
             <div class="number-pad" id="numberPad"></div>
-            <div class="tool-row single-tool-row">
+            <div class="tool-row">
+              <button class="tool-btn note-toggle" id="noteBtn"><span>✎</span><small>Note</small></button>
               <button class="tool-btn" id="eraseBtn"><span>⌫</span><small>Erase</small></button>
             </div>
           </div>
@@ -101,12 +102,13 @@
             <span class="eyebrow">PROGRESS</span>
             <div class="progress-ring"><strong id="filledCount">0</strong><span>/ 81 filled</span></div>
             <div class="progress-track"><i id="progressBar"></i></div>
-            <p class="muted small">Original clue cells are locked. No hints, row/column highlighting, answer checking, or solving assistance is provided during play.</p>
+            <p class="muted small">Original clue cells are locked. Manual notes are allowed, but no hints, row/column highlighting, answer checking, or solving assistance is provided during play.</p>
           </div>
           <div class="side-card glass">
             <span class="eyebrow">NUMBER PAD</span>
             <div class="number-pad desktop-pad" id="desktopNumberPad"></div>
-            <div class="tool-row vertical-tools single-tool-row">
+            <div class="tool-row vertical-tools">
+              <button class="tool-btn note-toggle" id="desktopNoteBtn"><span>✎</span><small>Note</small></button>
               <button class="tool-btn" id="desktopEraseBtn"><span>⌫</span><small>Erase</small></button>
             </div>
           </div>

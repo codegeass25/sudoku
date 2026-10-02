@@ -39,6 +39,8 @@
           <button class="nav-btn" data-tab="contestants"><span>♙</span>Contestants</button>
           <button class="nav-btn" data-tab="monitor"><span>◉</span>Live Monitor</button>
           <button class="nav-btn" data-tab="ranking"><span>🏆</span>Rankings</button>
+          <button class="nav-btn" data-tab="history"><span>◷</span>History</button>
+          <button class="nav-btn" data-tab="settings"><span>⚙</span>Settings</button>
           <button class="nav-btn" data-tab="data"><span>⌁</span>Data & Backup</button>
         </nav>
         <div class="sidebar-bottom"><button id="logoutBtn" class="nav-btn danger-text"><span>↪</span>Sign Out</button></div>
@@ -46,14 +48,14 @@
 
       <div class="admin-content">
         <div class="mobile-admin-nav glass">
-          <select id="mobileTabSelect"><option value="overview">Overview</option><option value="setup">Competition Setup</option><option value="contestants">Contestants</option><option value="monitor">Live Monitor</option><option value="ranking">Rankings</option><option value="data">Data & Backup</option></select>
+          <select id="mobileTabSelect"><option value="overview">Overview</option><option value="setup">Competition Setup</option><option value="contestants">Contestants</option><option value="monitor">Live Monitor</option><option value="ranking">Rankings</option><option value="history">History</option><option value="settings">Settings</option><option value="data">Data & Backup</option></select>
         </div>
 
         <section class="admin-tab active" data-panel="overview">
           <div class="page-heading"><div><span class="eyebrow">REAL-TIME OPERATIONS</span><h1>Competition Dashboard</h1><p class="muted">Every critical update is pushed live through Socket.IO.</p></div><div class="heading-actions"><select id="competitionSelect" class="select-premium"></select><button id="refreshBtn" class="icon-btn" title="Resync">↻</button></div></div>
           <div id="noCompetitionNotice" class="empty-state glass hidden"><strong>No competition selected</strong><p>Create a competition from Competition Setup.</p></div>
           <div id="overviewContent">
-            <div class="event-strip glass"><div><span id="eventStatus" class="status-chip">DRAFT</span><h2 id="eventName">—</h2><p id="eventMeta">—</p></div><div class="event-actions"><button id="toggleEventBtn" class="btn btn-success">Open Competition</button><button id="leaderboardVisibilityBtn" class="btn btn-secondary">Leaderboard: Hidden</button><button id="copyCodeBtn" class="btn btn-secondary">Copy Code</button></div></div>
+            <div class="event-strip glass"><div><span id="eventStatus" class="status-chip">DRAFT</span><h2 id="eventName">—</h2><p id="eventMeta">—</p></div><div class="event-actions"><button id="toggleEventBtn" class="btn btn-success">Open Competition</button><button id="leaderboardVisibilityBtn" class="btn btn-secondary">Leaderboard: Hidden</button><button id="copyCodeBtn" class="btn btn-secondary">Copy Code</button><button id="archiveCompetitionBtn" class="btn btn-danger hidden">Delete → History</button></div></div>
             <div class="stat-grid">
               <article class="stat-card glass"><small>REGISTERED</small><strong id="statRegistered">0</strong><span>Total contestants</span></article>
               <article class="stat-card glass"><small>PLAYING</small><strong id="statPlaying">0</strong><span>Live attempts</span></article>
@@ -110,8 +112,30 @@
         </section>
 
         <section class="admin-tab" data-panel="ranking">
-          <div class="page-heading"><div><span class="eyebrow">OFFICIAL RESULTS</span><h1>Rankings</h1><p class="muted">Correctness first, then shortest server-measured elapsed time.</p></div><div class="heading-actions result-tools"><button id="printResultsBtn" class="icon-action-btn" title="Print official results" aria-label="Print official results"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 8V4h10v4M7 17H5a2 2 0 0 1-2-2v-4a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v4a2 2 0 0 1-2 2h-2M7 14h10v6H7z"/></svg></button><button id="exportXlsxBtn" class="icon-action-btn" title="Download Excel (.xlsx)" aria-label="Download Excel results"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v12m0 0 4-4m-4 4-4-4M5 19h14"/></svg><span class="file-badge">XLSX</span></button></div></div>
+          <div class="page-heading"><div><span class="eyebrow">OFFICIAL RESULTS</span><h1>Rankings</h1><p class="muted">Correctness first, then shortest server-measured elapsed time.</p></div><div class="heading-actions result-tools"><button id="printResultsBtn" class="icon-action-btn" title="Print official results" aria-label="Print official results"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 8V4h10v4M7 17H5a2 2 0 0 1-2-2v-4a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v4a2 2 0 0 1-2 2h-2M7 14h10v6H7z"/></svg></button><button id="certificateBtn" class="icon-action-btn certificate-action" title="Generate Champion certificates" aria-label="Generate certificates"><span class="cert-icon">★</span><span class="file-badge">CERT</span></button><button id="exportXlsxBtn" class="icon-action-btn" title="Download Excel (.xlsx)" aria-label="Download Excel results"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v12m0 0 4-4m-4 4-4-4M5 19h14"/></svg><span class="file-badge">XLSX</span></button></div></div>
           <div class="dashboard-card glass"><div class="ranking-note"><strong>Ranking logic</strong><span>Accuracy / Correct answers ↓ → Shortest elapsed time ↑</span></div><div id="fullLeaderboard" class="ranking-table"></div></div>
+        </section>
+
+
+        <section class="admin-tab" data-panel="history">
+          <div class="page-heading"><div><span class="eyebrow">OFFICIAL RECORDS</span><h1>Competition History</h1><p class="muted">Completed competitions moved from the active workspace remain permanently available here with their rankings, exports, and certificates.</p></div><div class="heading-actions"><button id="refreshHistoryBtn" class="btn btn-secondary">Refresh History</button></div></div>
+          <div id="historyList" class="history-grid"></div>
+        </section>
+
+        <section class="admin-tab" data-panel="settings">
+          <div class="page-heading"><div><span class="eyebrow">CERTIFICATE SETTINGS</span><h1>Signatories & Certificate Header</h1><p class="muted">Configure the names and designations that automatically appear on Champion, 1st Runner-Up, and 2nd Runner-Up certificates.</p></div></div>
+          <form id="certificateSettingsForm" class="dashboard-card glass form-grid certificate-settings-form">
+            <div class="section-heading full"><div><span class="eyebrow">A4 CERTIFICATE TEMPLATE</span><h2>Institutional Header</h2></div></div>
+            <label class="field full"><span>Department</span><input id="certDepartment" value="DEPARTMENT OF EDUCATION" /></label>
+            <label class="field"><span>Region</span><input id="certRegion" value="CARAGA ADMINISTRATIVE REGION" /></label>
+            <label class="field"><span>Division</span><input id="certDivision" value="DIVISION OF AGUSAN DEL NORTE" /></label>
+            <label class="field full"><span>School Name</span><input id="certSchool" value="MAGALLANES NATIONAL HIGH SCHOOL" /></label>
+            <label class="field full"><span>Venue / Issuance Place</span><input id="certVenue" value="Magallanes National High School, Magallanes, Agusan del Norte" /></label>
+            <div class="section-heading full signatory-heading"><div><span class="eyebrow">SIGNATORIES</span><h2>Four configurable signature lines</h2><p class="muted small">Leave a name blank if you want a blank signature line with designation only.</p></div></div>
+            <div id="signatoryFields" class="signatory-grid full"></div>
+            <button class="btn btn-primary full" type="submit">Save Certificate Settings</button>
+            <p id="certificateSettingsMessage" class="form-message full"></p>
+          </form>
         </section>
 
         <section class="admin-tab" data-panel="data">
