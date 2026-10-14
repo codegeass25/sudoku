@@ -42,3 +42,23 @@ button,input,textarea,select{font:inherit}button{cursor:pointer}.ambient{positio
 .certificate-settings-form{max-width:1100px}.signatory-heading{margin-top:8px;padding-top:14px;border-top:1px solid var(--line)}.signatory-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}.signatory-card{border:1px solid var(--line);border-radius:15px;padding:14px;background:rgba(255,255,255,.025);display:grid;gap:9px}.signatory-card .field{margin:0}.signatory-card .eyebrow{margin-bottom:2px}
 @media(max-width:900px){.history-grid{grid-template-columns:1fr}.signatory-grid{grid-template-columns:1fr}.history-podium{grid-template-columns:1fr}.history-podium strong{white-space:normal}.history-head{flex-direction:column}.history-actions .btn{min-width:0}}
 @media(max-width:420px){.cell-note{font-size:clamp(5px,1.55vw,7px);left:4%;bottom:3%;letter-spacing:0}.tool-row{gap:6px}.tool-btn{min-width:0}}
+
+/* History deletion + readable, comma-separated candidate notes (2026-10-14). */
+.sudoku-cell .cell-note{
+  position:absolute;z-index:3;left:1%;right:1%;bottom:3%;top:auto;
+  width:98%;max-width:98%;display:flex;flex-direction:column;
+  align-items:center;justify-content:flex-end;gap:0;
+  color:#bed8ff;font-size:clamp(8px,1.6vw,14px);font-weight:850;
+  letter-spacing:0;line-height:1.08;text-align:center;
+  white-space:normal;pointer-events:none;
+  text-shadow:0 1px 2px rgba(0,0,0,.85);
+  font-variant-numeric:tabular-nums;
+}
+.sudoku-cell .cell-note-line{display:block;max-width:100%;white-space:nowrap;min-height:1em}
+.sudoku-cell .cell-note:empty{display:none}
+@media(max-width:720px){.sudoku-cell .cell-note{font-size:clamp(8px,2.55vw,11px);bottom:2%;line-height:1.05}}
+@media(max-width:360px){.sudoku-cell .cell-note{font-size:clamp(8px,2.45vw,9px);bottom:1%;line-height:1.02}}
+.history-actions .history-delete-btn{border-color:rgba(255,125,141,.4);background:rgba(255,125,141,.095);color:#ffc5cc}
+.history-actions .history-delete-btn:hover,.history-actions .history-delete-btn:focus-visible{border-color:#ff8d9b;background:rgba(255,125,141,.2)}
+.delete-history-warning{color:#ffbbc4!important;font-weight:700}
+.history-delete-meta{display:block;margin-top:8px;font-size:11px;color:#aab5c7;line-height:1.5}

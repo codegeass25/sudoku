@@ -27,7 +27,26 @@ E.startBtn.addEventListener('click',async()=>{if(!S.competition||!S.contestant)r
 
 function enterGame(){showView(E.game);E.gameTitle.textContent=S.attempt?.competition?.name||S.competition?.name||'Sudoku Competition';const c=S.contestant||S.attempt?.contestant;E.gamePlayer.textContent=`${c?.contestant_no||''} · ${c?.full_name||''}`;renderBoard();renderPads();updateNoteButtons();startTimer();updateProgress();setTimeout(()=>selectFirstEditable(),50)}
 function renderPads(){for(const wrap of [E.numberPad,E.desktopPad]){wrap.innerHTML='';for(let n=1;n<=9;n++){const b=document.createElement('button');b.className='number-key';b.textContent=n;b.type='button';b.addEventListener('click',()=>inputDigit(String(n)));wrap.appendChild(b)}}}
-function renderCell(i){const cell=E.board.children[i];if(!cell)return;cell.innerHTML='';const value=document.createElement('span');value.className='cell-value';value.textContent=S.board[i]==='0'?'':S.board[i];cell.appendChild(value);const note=document.createElement('span');note.className='cell-note';note.textContent=(S.board[i]==='0'&&S.puzzle[i]==='0')?(S.notes[i]||''):'';cell.appendChild(note);cell.classList.toggle('player-value',S.puzzle[i]==='0'&&S.board[i]!=='0');cell.setAttribute('aria-label',`Row ${Math.floor(i/9)+1}, column ${i%9+1}${note.textContent?`, notes ${note.textContent.split('').join(' ')}`:''}`)}
+function renderCell(i){
+  const cell=E.board.children[i];if(!cell)return;
+  cell.innerHTML='';
+  const value=document.createElement('span');value.className='cell-value';
+  value.textContent=S.board[i]==='0'?'':S.board[i];cell.appendChild(value);
+  const note=document.createElement('span');note.className='cell-note';
+  // Stored notes remain unchanged (e.g. '123456'); only the visible labels use commas.
+  const digits=(S.board[i]==='0'&&S.puzzle[i]==='0')?(S.notes[i]||'').split('').filter(v=>/^[1-9]$/.test(v)):[];
+  // Balanced lines of at most three candidates stay legible in narrow phone cells.
+  const rowCount=Math.ceil(digits.length/3);
+  for(let offset=0;offset<digits.length;){
+    const remainingRows=rowCount-note.childElementCount;
+    const take=Math.ceil((digits.length-offset)/remainingRows);
+    const line=document.createElement('span');line.className='cell-note-line';
+    line.textContent=digits.slice(offset,offset+take).join(',');note.appendChild(line);offset+=take;
+  }
+  cell.appendChild(note);
+  cell.classList.toggle('player-value',S.puzzle[i]==='0'&&S.board[i]!=='0');
+  cell.setAttribute('aria-label',`Row ${Math.floor(i/9)+1}, column ${i%9+1}${digits.length?`, notes ${digits.join(', ')}`:''}`);
+}
 function renderBoard(){E.board.innerHTML='';for(let i=0;i<81;i++){const b=document.createElement('button');b.type='button';b.className='sudoku-cell';b.dataset.index=i;b.setAttribute('role','gridcell');b.tabIndex=i===0?0:-1;if(Math.floor(i/9)%3===2&&Math.floor(i/9)!==8)b.classList.add('box-bottom');if(S.puzzle[i]!=='0')b.classList.add('clue');b.addEventListener('click',()=>selectCell(i,true));E.board.appendChild(b);renderCell(i)}updateSelection()}
 function selectCell(i,focus=false){if(i<0||i>80)return;S.selected=i;updateSelection();if(focus){const cell=E.board.children[i];cell?.focus({preventScroll:true})}}
 function selectFirstEditable(){if(S.selected!=null)return;const i=S.puzzle.indexOf('0');if(i>=0)selectCell(i,false)}
