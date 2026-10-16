@@ -8,7 +8,7 @@
   <link rel="manifest" href="./manifest.json" />
   <link rel="icon" href="./assets/icon-192.png" />
   <link rel="apple-touch-icon" href="./assets/icon-192.png" />
-  <link rel="stylesheet" href="./styles.css" />
+  <link rel="stylesheet" href="./styles.css" /><link rel="stylesheet" href="./group-admin.css" />
 </head>
 <body data-page="admin">
   <div class="ambient ambient-a"></div><div class="ambient ambient-b"></div>
@@ -36,6 +36,7 @@
         <nav class="side-nav">
           <button class="nav-btn active" data-tab="overview"><span>◫</span>Overview</button>
           <button class="nav-btn" data-tab="setup"><span>＋</span>Competition Setup</button>
+          <button class="nav-btn" data-tab="groups"><span>♟</span>Teams / Groups</button>
           <button class="nav-btn" data-tab="contestants"><span>♙</span>Contestants</button>
           <button class="nav-btn" data-tab="monitor"><span>◉</span>Live Monitor</button>
           <button class="nav-btn" data-tab="ranking"><span>🏆</span>Rankings</button>
@@ -48,7 +49,7 @@
 
       <div class="admin-content">
         <div class="mobile-admin-nav glass">
-          <select id="mobileTabSelect"><option value="overview">Overview</option><option value="setup">Competition Setup</option><option value="contestants">Contestants</option><option value="monitor">Live Monitor</option><option value="ranking">Rankings</option><option value="history">History</option><option value="settings">Settings</option><option value="data">Data & Backup</option></select>
+          <select id="mobileTabSelect"><option value="overview">Overview</option><option value="setup">Competition Setup</option><option value="groups">Teams / Groups</option><option value="contestants">Contestants</option><option value="monitor">Live Monitor</option><option value="ranking">Rankings</option><option value="history">History</option><option value="settings">Settings</option><option value="data">Data & Backup</option></select>
         </div>
 
         <section class="admin-tab active" data-panel="overview">
@@ -80,6 +81,15 @@
               <label class="field full"><span>Organizer / School</span><input id="newOrg" placeholder="Organization or school name" /></label>
               <label class="field full"><span>Description / Instructions</span><textarea id="newDescription" rows="4" placeholder="Instructions shown before contestants start."></textarea></label>
 
+              <label class="field full"><span>Competition Type</span><select id="newCompetitionType"><option value="individual" selected>Individual Competition — Original mode</option><option value="group">GROUP / TEAM Competition</option></select></label>
+              <div class="group-create-fields full hidden" id="groupCreateFields">
+                <label class="field"><span>Group Format</span><select id="newGroupFormat"><option value="collaborative">Collaborative · One shared board</option><option value="aggregate">Aggregate · Individual boards, combined team score</option></select></label>
+                <label class="field"><span>Members per Team</span><input type="number" id="newGroupSize" min="2" max="10" value="4"></label>
+                <label class="field"><span>Maximum Teams</span><input type="number" id="newMaxTeams" min="1" max="500" value="8"></label>
+                <label class="field"><span>Official Start</span><select id="newGroupStart"><option value="admin">Admin starts every team simultaneously</option><option value="captain">Team captains start individually</option></select></label>
+                <label class="field"><span>Shared Board Editing</span><select id="newGroupEdit"><option value="all">All members can edit</option><option value="captain">Captain edits · Others view</option></select></label>
+                <p class="muted small group-hint">Admin preregisters teams and individual members. Each member receives a secure access code.</p>
+              </div>
               <label class="field"><span>Difficulty</span><select id="newDifficulty" required><option value="EASY">EASY</option><option value="MODERATE">MODERATE</option><option value="DIFFICULT" selected>DIFFICULT</option><option value="EXTREME">EXTREME</option></select></label>
               <label class="field"><span>Time Limit (minutes)</span><input id="newTimeLimit" type="number" min="1" max="720" value="30" required /></label>
               <label class="field"><span>Participation Mode</span><select id="newParticipationMode"><option value="open" selected>Open Play / Unlimited</option><option value="limited">Limited Participants</option></select></label>
@@ -94,6 +104,21 @@
               <button class="btn btn-primary full" type="submit">Create Competition →</button><p id="createMessage" class="form-message full"></p>
             </form>
             <div class="dashboard-card glass guide-card"><span class="eyebrow">COMPETITION ENGINE</span><h2>Fair and server-controlled</h2><div class="check-list"><p>✓ EASY / MODERATE / DIFFICULT / EXTREME modes</p><p>✓ Unique-solution puzzle families</p><p>✓ Random equivalent puzzle per contestant</p><p>✓ Private answer key generated server-side</p><p>✓ Server-authoritative time limit & auto-submit</p><p>✓ Accuracy first, elapsed time as tie-breaker</p></div><div class="info-box"><strong>Important</strong><p>Difficulty, time limit, and participant limit become locked after the first official attempt starts.</p></div></div>
+          </div>
+        </section>
+
+        <section class="admin-tab" data-panel="groups">
+          <div class="page-heading"><div><span class="eyebrow">OFFICIAL TEAM REGISTRY</span><h1>Group Competition</h1><p class="muted">Create teams, preregister each member, distribute secure access codes, and start all teams simultaneously.</p></div><div class="heading-actions"><a href="./group.html" class="btn btn-secondary" target="_blank">Open Player Group Arena ↗</a></div></div>
+          <div id="groupNotSelected" class="dashboard-card glass"><h2>Select a Group Competition</h2><p class="muted">Create a Group type in Competition Setup, then select it in the top Dashboard.</p></div>
+          <div id="groupAdminPanel" class="hidden">
+            <div class="group-admin-actions"><button class="btn btn-primary" id="groupStartAll">Start All Teams Simultaneously</button><button class="btn btn-secondary" id="groupRefresh">↻ Refresh Teams</button><span id="groupAdminDetails" class="muted small"></span></div>
+            <div class="dashboard-grid contestants-grid">
+              <form class="dashboard-card glass form-grid single" id="groupAddTeam"><div class="section-heading"><div><span class="eyebrow">NEW TEAM</span><h2>Register Team</h2></div></div><label class="field"><span>Team Name</span><input id="groupNewName" maxlength="100" required placeholder="TEAM ALPHA"></label><label class="field"><span>Team Code</span><input id="groupNewCode" maxlength="40" required placeholder="ALPHA"></label><label class="field"><span>School / Delegation</span><input id="groupNewSchool" maxlength="160" placeholder="Optional"></label><button class="btn btn-primary">Add Team</button></form>
+              <div class="dashboard-card glass"><div class="section-heading"><div><span class="eyebrow">BULK IMPORT</span><h2>Import Team Members</h2></div></div><p class="muted small">One row per member: <strong>Team Code, Team Name, School, Contestant No., Full Name, Role</strong>. First member should be captain. Team is created automatically if necessary.</p><textarea id="groupBulk" rows="6" placeholder="A, TEAM ALPHA, MNHS, A-01, Juan Dela Cruz, captain
+A, TEAM ALPHA, MNHS, A-02, Maria Santos, member"></textarea><button class="btn btn-secondary full" id="groupImport" type="button">Import and Generate Access Codes</button></div>
+            </div>
+            <div class="dashboard-card glass"><div class="section-heading"><div><span class="eyebrow">LIVE GROUP REGISTRY</span><h2>Official Teams</h2></div></div><div id="groupTeamList" class="group-team-list"></div></div>
+            <div class="dashboard-card glass hidden" id="groupCredentialsPanel"><div class="section-heading"><div><span class="eyebrow">CONFIDENTIAL · SHOW ONLY ONCE</span><h2>New Member Credentials</h2></div><button id="groupDownloadCreds" class="btn btn-secondary" type="button">Download CSV</button></div><p class="muted small">Copy or download these credentials now. For security, PINs are stored hashed and cannot be displayed again; use Reset Code for a replacement.</p><div id="groupCredentialList" class="table-wrap"></div></div>
           </div>
         </section>
 
@@ -206,6 +231,6 @@
   </div>
 
   <div id="adminToastStack" class="toast-stack"></div>
-  <script src="./admin.js" defer></script>
+  <script src="./admin.js" defer></script><script src="./group-admin.js" defer></script>
 </body>
 </html>
